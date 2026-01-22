@@ -24,20 +24,20 @@ func mainPage(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusCreated)
 		res.Write([]byte("http://localhost:8080/" + id))
 	case http.MethodGet:
-		splitted_path := strings.Split(strings.TrimPrefix(req.URL.Path, "/"), "/")
-		if len(splitted_path) > 1 {
+		splittedPath := strings.Split(strings.TrimPrefix(req.URL.Path, "/"), "/")
+		if len(splittedPath) > 1 {
 			http.Error(res, "", 400)
 			return
 		}
 
-		url, ok := urls[splitted_path[0]]
+		url, ok := urls[splittedPath[0]]
 		if !ok {
 			http.Error(res, "", 400)
 			return
 		}
 
+		res.Header().Set("Location", url)
 		res.WriteHeader(307)
-		res.Write([]byte(url))
 	}
 
 }
