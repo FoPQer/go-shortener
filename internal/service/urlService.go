@@ -2,6 +2,6 @@ package service
 
 import "crypto/rand"
 
-func NewId() string {
+func NewID() string {
 	return rand.Text()[0:8]
 }

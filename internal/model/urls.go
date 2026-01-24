@@ -14,15 +14,15 @@ func NewUrls() *Urls {
 	}
 }
 
-func (u *Urls) SetUrl(id string, url string) error {
+func (u *Urls) SetURL(id string, url string) error {
 	u.Urls[id] = url
 	return nil
 }
 
-func (u *Urls) GetUrl(id string) (string, error) {
+func (u *Urls) GetURL(id string) (string, error) {
 	url, ok := u.Urls[id]
 	if !ok {
-		return "", errors.New("Value not received")
+		return "", errors.New("value not received")
 	}
 	return url, nil
 }

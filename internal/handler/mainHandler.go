@@ -9,7 +9,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/service"
 )
 
-func GetUrl(res http.ResponseWriter, req *http.Request) {
+func GetURL(res http.ResponseWriter, req *http.Request) {
 	urls := repository.Urls
 	splittedPath := strings.Split(strings.TrimPrefix(req.URL.Path, "/"), "/")
 	if len(splittedPath) > 1 {
@@ -17,7 +17,7 @@ func GetUrl(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	url, err := urls.GetUrl(splittedPath[0])
+	url, err := urls.GetURL(splittedPath[0])
 	if err != nil {
 		http.Error(res, "", 400)
 		return
@@ -27,7 +27,7 @@ func GetUrl(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(307)
 }
 
-func PostUrl(res http.ResponseWriter, req *http.Request) {
+func PostURL(res http.ResponseWriter, req *http.Request) {
 	urls := repository.Urls
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -39,8 +39,8 @@ func PostUrl(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id := service.NewId()
-	if err := urls.SetUrl(id, string(body)); err != nil {
+	id := service.NewID()
+	if err := urls.SetURL(id, string(body)); err != nil {
 		http.Error(res, "", 400)
 		return
 	}

@@ -12,9 +12,9 @@ func main() {
 	mainPage := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			handler.GetUrl(w, r)
+			handler.GetURL(w, r)
 		case http.MethodPost:
-			handler.PostUrl(w, r)
+			handler.PostURL(w, r)
 		}
 	}
 	if err := http.ListenAndServe(":8080", http.HandlerFunc(mainPage)); err != nil {

@@ -67,7 +67,7 @@ func TestGetUrl(t *testing.T) {
 			repository.Urls = &tt.urls
 			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/"+tt.value, nil)
 			w := httptest.NewRecorder()
-			handler.GetUrl(w, request)
+			handler.GetURL(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)
@@ -113,7 +113,7 @@ func TestPostUrl(t *testing.T) {
 			repository.Urls = tt.urls
 			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
 			w := httptest.NewRecorder()
-			handler.PostUrl(w, request)
+			handler.PostURL(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)
