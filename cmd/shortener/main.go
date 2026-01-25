@@ -5,19 +5,16 @@ import (
 
 	"github.com/FoPQer/go-shortener/internal/handler"
 	"github.com/FoPQer/go-shortener/internal/repository"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
 	repository.InitUrls()
-	mainPage := func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handler.GetURL(w, r)
-		case http.MethodPost:
-			handler.PostURL(w, r)
-		}
-	}
-	if err := http.ListenAndServe(":8080", http.HandlerFunc(mainPage)); err != nil {
+	r := chi.NewRouter()
+
+	r.Post("/", handler.PostURL)
+	r.Get("/{id}", handler.GetURL)
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		panic(err)
 	}
 }

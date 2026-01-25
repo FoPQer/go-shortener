@@ -3,21 +3,21 @@ package handler
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/FoPQer/go-shortener/internal/service"
+	"github.com/go-chi/chi/v5"
 )
 
 func GetURL(res http.ResponseWriter, req *http.Request) {
 	urls := repository.Urls
-	splittedPath := strings.Split(strings.TrimPrefix(req.URL.Path, "/"), "/")
-	if len(splittedPath) > 1 {
+	id := chi.URLParam(req, "id")
+	if id == "" {
 		http.Error(res, "", 400)
 		return
 	}
 
-	url, err := urls.GetURL(splittedPath[0])
+	url, err := urls.GetURL(id)
 	if err != nil {
 		http.Error(res, "", 400)
 		return

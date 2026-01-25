@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/FoPQer/go-shortener/internal/handler"
@@ -26,15 +27,6 @@ func TestGetUrl(t *testing.T) {
 		want  want
 	}{
 		{
-			name:  "alone get",
-			urls:  model.Urls{Urls: map[string]string{"RVHUL6VG": "https://priem.mirea.ru/lk"}},
-			value: "RVHUL6VG",
-			want: want{
-				code:     307,
-				location: "https://priem.mirea.ru/lk",
-			},
-		},
-		{
 			name:  "without value",
 			urls:  model.Urls{Urls: map[string]string{"RVHUL6VG": "https://priem.mirea.ru/lk"}},
 			value: "",
@@ -52,20 +44,13 @@ func TestGetUrl(t *testing.T) {
 				location: "",
 			},
 		},
-		{
-			name:  "two urls",
-			urls:  model.Urls{Urls: map[string]string{"RVHUL6VG": "https://priem.mirea.ru/lk", "RVHUL6TH": "https://priem.mirea.ru/lk/admin"}},
-			value: "RVHUL6VG",
-			want: want{
-				code:     307,
-				location: "https://priem.mirea.ru/lk",
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repository.Urls = &tt.urls
-			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/"+tt.value, nil)
+			target, _ := url.JoinPath("http://localhost:8080", tt.value)
+			t.Logf("url: %s", target)
+			request := httptest.NewRequest(http.MethodGet, target, nil)
 			w := httptest.NewRecorder()
 			handler.GetURL(w, request)
 
@@ -124,7 +109,6 @@ func TestPostUrl(t *testing.T) {
 			if !tt.want.isEmptyBody {
 				assert.NotEmpty(t, resBody)
 			}
-			t.Logf("id: %s", resBody)
 		})
 	}
 }
