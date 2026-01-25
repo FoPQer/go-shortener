@@ -1,20 +1,30 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/handler"
 	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
+	flags.ParseFlags()
 	repository.InitUrls()
 	r := chi.NewRouter()
 
+	if flags.FlagBasePrefix != "/" {
+		r.Route(flags.FlagBasePrefix, func(r chi.Router) {
+			r.Get("/{id}", handler.GetURL)
+		})
+	} else {
+		r.Get("/{id}", handler.GetURL)
+	}
 	r.Post("/", handler.PostURL)
-	r.Get("/{id}", handler.GetURL)
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	fmt.Println(flags.FlagRunAddr + flags.FlagBasePrefix)
+	if err := http.ListenAndServe(flags.FlagRunAddr, r); err != nil {
 		panic(err)
 	}
 }

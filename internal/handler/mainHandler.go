@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -47,5 +48,5 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte("http://localhost:8080/" + id))
+	res.Write([]byte("http://" + flags.FlagRunAddr + flags.FlagBasePrefix + "/" + id))
 }
