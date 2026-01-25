@@ -23,14 +23,14 @@ func NewUrls() *Urls {
 
 func (u *Urls) SetURL(id string, url string) error {
 	if id == "" {
-		return ErrEmptyUrlId
+		return ErrEmptyURLID
 	}
 	if url == "" {
-		return ErrEmptyUrlUrl
+		return ErrEmptyURLURL
 	}
 	_, ok := u.Urls[id]
 	if ok {
-		return ErrIdAlreadyExists
+		return ErrIDAlreadyExists
 	}
 	u.Urls[id] = url
 	return nil
