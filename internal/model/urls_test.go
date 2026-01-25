@@ -35,7 +35,7 @@ func TestUrls_SetURL(t *testing.T) {
 				"",
 				"https://priem.mirea.ru/lk/admin/crud/list/user-resources",
 			},
-			model.ErrEmptyUrlId,
+			model.ErrEmptyURLID,
 		},
 		{
 			"empty url",
@@ -44,7 +44,7 @@ func TestUrls_SetURL(t *testing.T) {
 				"67KBAWAO",
 				"",
 			},
-			model.ErrEmptyUrlUrl,
+			model.ErrEmptyURLURL,
 		},
 		{
 			"exist id",
@@ -55,7 +55,7 @@ func TestUrls_SetURL(t *testing.T) {
 				"67KBAWAO",
 				"https://priem.mirea.ru/lk/admin/crud/list/user-resources",
 			},
-			model.ErrIdAlreadyExists,
+			model.ErrIDAlreadyExists,
 		},
 	}
 	for _, tt := range tests {
@@ -67,7 +67,7 @@ func TestUrls_SetURL(t *testing.T) {
 				assert.True(t, ok)
 			} else {
 				assert.EqualError(t, err, tt.wantErr.Error())
-				if tt.wantErr != model.ErrIdAlreadyExists {
+				if tt.wantErr != model.ErrIDAlreadyExists {
 					_, ok := tt.u.Urls[tt.values.id]
 					assert.False(t, ok)
 				}

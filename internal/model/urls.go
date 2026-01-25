@@ -6,9 +6,9 @@ import (
 
 var (
 	ErrBadValueReceive = errors.New("value not received")
-	ErrEmptyUrlId      = errors.New("Empty Id to insert")
-	ErrEmptyUrlUrl     = errors.New("Empty url to insert")
-	ErrIdAlreadyExists = errors.New("Id is already exists")
+	ErrEmptyURLID      = errors.New("empty id to insert")
+	ErrEmptyURLURL     = errors.New("empty url to insert")
+	ErrIDAlreadyExists = errors.New("id is already exists")
 )
 
 type Urls struct {
