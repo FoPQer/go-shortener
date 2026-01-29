@@ -15,11 +15,9 @@ func main() {
 	repository.InitUrls()
 	r := chi.NewRouter()
 
-	r.Route("/"+flags.FlagBasePrefix, func(r chi.Router) {
-		r.Get("/{id}", handler.GetURL)
-	})
+	r.Get(flags.FlagBasePrefix+"/{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
-	fmt.Println(flags.FlagRunAddr + "/" + flags.FlagBasePrefix)
+	fmt.Println(flags.FlagRunAddr + flags.FlagBasePrefix)
 	if err := http.ListenAndServe(flags.FlagRunAddr, r); err != nil {
 		panic(err)
 	}

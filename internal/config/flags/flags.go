@@ -2,6 +2,7 @@ package flags
 
 import (
 	"flag"
+	"net/url"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagBasePrefix, "b", "", "base prefix to URL")
 
 	flag.Parse()
+	FlagBasePrefix = url.QueryEscape(FlagBasePrefix)
 	if !strings.HasPrefix(FlagBasePrefix, "/") {
 		FlagBasePrefix = "/" + FlagBasePrefix
 	}
