@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/config/flags"
@@ -15,10 +14,10 @@ func main() {
 	repository.InitUrls()
 	r := chi.NewRouter()
 
-	r.Get(flags.FlagBasePrefix+"/{id}", handler.GetURL)
+	r.Get("/"+flags.GetFlagBasePrefix()+"/{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
-	fmt.Println(flags.FlagRunAddr + flags.FlagBasePrefix)
-	if err := http.ListenAndServe(flags.FlagRunAddr, r); err != nil {
+
+	if err := http.ListenAndServe(flags.GetFlagRunAddr(), r); err != nil {
 		panic(err)
 	}
 }

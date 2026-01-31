@@ -2,7 +2,9 @@ package handler
 
 import (
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/repository"
@@ -11,7 +13,7 @@ import (
 )
 
 func GetURL(res http.ResponseWriter, req *http.Request) {
-	urls := repository.Urls
+	urls := repository.GetUrls()
 	id := chi.URLParam(req, "id")
 	if id == "" {
 		http.Error(res, "", 400)
@@ -29,7 +31,7 @@ func GetURL(res http.ResponseWriter, req *http.Request) {
 }
 
 func PostURL(res http.ResponseWriter, req *http.Request) {
-	urls := repository.Urls
+	urls := repository.GetUrls()
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, "", 400)
@@ -46,7 +48,15 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.WriteHeader(http.StatusCreated)
+	target, err := url.JoinPath("http://"+flags.GetFlagRunAddr(), flags.GetFlagBasePrefix(), id)
+
+	log.Printf("url: %s %v", target, err)
+	if err != nil {
+		http.Error(res, "", 400)
+		return
+	}
+
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte("http://" + flags.FlagRunAddr + flags.FlagBasePrefix + "/" + id))
+	res.WriteHeader(http.StatusCreated)
+	res.Write([]byte(target))
 }

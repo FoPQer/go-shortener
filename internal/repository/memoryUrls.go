@@ -5,9 +5,17 @@ import (
 )
 
 var (
-	Urls *model.Urls
+	urls *model.Urls
 )
 
 func InitUrls() {
-	Urls = model.NewUrls()
+	urls = model.NewUrls()
+}
+
+func GetUrls() *model.Urls {
+	return urls
+}
+
+func SetUrls(newUrls *model.Urls) {
+	urls = newUrls
 }
