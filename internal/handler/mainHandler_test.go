@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/handler"
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository"
@@ -17,7 +16,6 @@ import (
 )
 
 func TestGetUrl(t *testing.T) {
-	flags.ParseFlags()
 	type want struct {
 		code     int
 		location string
@@ -66,7 +64,6 @@ func TestGetUrl(t *testing.T) {
 }
 
 func TestPostUrl(t *testing.T) {
-	flags.ParseFlags()
 	type want struct {
 		code        int
 		isEmptyBody bool
