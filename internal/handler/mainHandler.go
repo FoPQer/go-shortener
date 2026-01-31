@@ -2,7 +2,6 @@ package handler
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -50,7 +49,6 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 
 	target, err := url.JoinPath("http://"+flags.GetFlagRunAddr(), flags.GetFlagBasePrefix(), id)
 
-	log.Printf("url: %s %v", target, err)
 	if err != nil {
 		http.Error(res, "", 400)
 		return
