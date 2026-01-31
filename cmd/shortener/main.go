@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"net/url"
+	"strings"
 
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/handler"
@@ -16,12 +16,15 @@ func main() {
 	repository.InitUrls()
 	r := chi.NewRouter()
 
-	getPattern, err := url.JoinPath("/", flags.GetFlagBasePrefix())
-
-	if err != nil {
-		panic(err)
+	base := flags.GetFlagBasePrefix()
+	if !strings.HasPrefix(base, "/") {
+		base = "/" + base
 	}
-	r.Get(getPattern+"/{id}", handler.GetURL)
+	if !strings.HasSuffix(base, "/") {
+		base = base + "/"
+	}
+
+	r.Get(base+"{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
 
 	if err := http.ListenAndServe(flags.GetFlagRunAddr(), r); err != nil {
