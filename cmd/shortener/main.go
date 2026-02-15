@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/config/flags"
+	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
@@ -15,6 +16,7 @@ func main() {
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r)
 	repository.InitUrls()
+	logger.InitLogger()
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)
