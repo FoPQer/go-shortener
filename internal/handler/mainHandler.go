@@ -3,23 +3,19 @@ package handler
 import (
 	"io"
 	"net/http"
-	"net/url"
 
-	"github.com/FoPQer/go-shortener/internal/config/flags"
-	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
 func GetURL(res http.ResponseWriter, req *http.Request) {
-	urls := repository.GetUrls()
 	id := chi.URLParam(req, "id")
 	if id == "" {
 		http.Error(res, "", 400)
 		return
 	}
 
-	url, err := urls.GetURL(id)
+	url, err := service.GetURL(id)
 	if err != nil {
 		http.Error(res, "", 400)
 		return
@@ -30,7 +26,6 @@ func GetURL(res http.ResponseWriter, req *http.Request) {
 }
 
 func PostURL(res http.ResponseWriter, req *http.Request) {
-	urls := repository.GetUrls()
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, "", 400)
@@ -41,14 +36,7 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id := service.NewID()
-	if err := urls.SetURL(id, string(body)); err != nil {
-		http.Error(res, "", 400)
-		return
-	}
-
-	target, err := url.JoinPath("http://"+flags.GetFlagRunAddr(), flags.GetFlagBasePrefix(), id)
-
+	target, err := service.SetURL(string(body))
 	if err != nil {
 		http.Error(res, "", 400)
 		return
