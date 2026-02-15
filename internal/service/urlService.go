@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"net/url"
 
-	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/repository"
 )
 
@@ -31,7 +30,7 @@ func SetURL(fullURL string) (string, error) {
 		return "", err
 	}
 
-	target, err := url.JoinPath("http://"+flags.GetFlagRunAddr(), flags.GetFlagBasePrefix(), id)
+	target, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), id)
 	if err != nil {
 		return "", err
 	}

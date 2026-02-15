@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net/url"
 	"os"
 	"strings"
 
@@ -9,9 +10,9 @@ import (
 
 func GetRunAddr() string {
 	if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
-		return addr
+		return url.PathEscape(addr)
 	} else {
-		return flags.GetFlagRunAddr()
+		return url.PathEscape(flags.GetFlagRunAddr())
 	}
 }
 
@@ -23,6 +24,8 @@ func GetBasePrefix() string {
 	} else {
 		out_base = flags.GetFlagBasePrefix()
 	}
+
+	out_base = url.PathEscape(out_base)
 
 	if !strings.HasPrefix(out_base, "/") {
 		out_base = "/" + out_base

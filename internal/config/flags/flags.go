@@ -2,7 +2,6 @@ package flags
 
 import (
 	"flag"
-	"net/url"
 )
 
 var (
@@ -31,6 +30,4 @@ func ParseFlags() {
 	flag.StringVar(&flagBasePrefix, "b", "", "base prefix to URL")
 
 	flag.Parse()
-
-	flagBasePrefix = url.PathEscape(flagBasePrefix)
 }
