@@ -17,22 +17,22 @@ func GetRunAddr() string {
 }
 
 func GetBasePrefix() string {
-	var out_base string
+	var outBase string
 
 	if base := os.Getenv("BASE_URL"); base != "" {
-		out_base = base
+		outBase = base
 	} else {
-		out_base = flags.GetFlagBasePrefix()
+		outBase = flags.GetFlagBasePrefix()
 	}
 
-	out_base = url.PathEscape(out_base)
+	outBase = url.PathEscape(outBase)
 
-	if !strings.HasPrefix(out_base, "/") {
-		out_base = "/" + out_base
+	if !strings.HasPrefix(outBase, "/") {
+		outBase = "/" + outBase
 	}
-	if !strings.HasSuffix(out_base, "/") {
-		out_base = out_base + "/"
+	if !strings.HasSuffix(outBase, "/") {
+		outBase = outBase + "/"
 	}
 
-	return out_base
+	return outBase
 }
