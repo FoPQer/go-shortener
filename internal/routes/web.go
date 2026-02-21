@@ -14,5 +14,8 @@ func InitWebRoutes(r *chi.Mux) {
 
 	r.Get(base+"{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
-	r.Post("/shorten", handler.PostURLByJson)
+
+	r.Route("/api", func(api chi.Router) {
+		api.Post("/shorten", handler.PostURLByJSON)
+	})
 }

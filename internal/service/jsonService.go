@@ -2,25 +2,25 @@ package service
 
 import "encoding/json"
 
-type InputJsonURL struct {
-	Url string `json:"url"`
+type InputJSONURL struct {
+	URL string `json:"url"`
 }
 
-type OutputJsonURL struct {
+type OutputJSONURL struct {
 	Result string `json:"result"`
 }
 
-func GetURLFromJson(input []byte) (string, error) {
-	var url InputJsonURL
+func GetURLFromJSON(input []byte) (string, error) {
+	var url InputJSONURL
 	if err := json.Unmarshal(input, &url); err != nil {
 		return "", err
 	}
 
-	return url.Url, nil
+	return url.URL, nil
 }
 
-func SetURLToJson(input string) ([]byte, error) {
-	url := OutputJsonURL{Result: input}
+func SetURLToJSON(input string) ([]byte, error) {
+	url := OutputJSONURL{Result: input}
 	
 	result, err := json.Marshal(url)
 	if err != nil {

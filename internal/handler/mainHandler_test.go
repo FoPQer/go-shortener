@@ -113,7 +113,7 @@ func TestPostUrl(t *testing.T) {
 	}
 }
 
-func TestPostURLByJson(t *testing.T) {
+func TestPostURLByJSON(t *testing.T) {
 	type want struct {
 		code        int
 		contentType string
@@ -142,7 +142,7 @@ func TestPostURLByJson(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewBuffer([]byte(tt.body)))
 			request.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
-			handler.PostURLByJson(w, request)
+			handler.PostURLByJSON(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)

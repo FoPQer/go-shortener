@@ -47,7 +47,7 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(target))
 }
 
-func PostURLByJson(res http.ResponseWriter, req *http.Request) {
+func PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, "", 400)
@@ -58,7 +58,7 @@ func PostURLByJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	url, err := service.GetURLFromJson(body)
+	url, err := service.GetURLFromJSON(body)
 	if err != nil {
 		http.Error(res, "", 400)
 		return
@@ -70,7 +70,7 @@ func PostURLByJson(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	out, err := service.SetURLToJson(target)
+	out, err := service.SetURLToJSON(target)
 	if err != nil {
 		http.Error(res, "", 400)
 		return
