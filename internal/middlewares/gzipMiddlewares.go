@@ -3,54 +3,73 @@ package middlewares
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
 
 type gzipResponseWriter struct {
 	http.ResponseWriter
-	Writer io.Writer
+	writer      io.Writer
+	gz          *gzip.Writer
+	status      int
+	wroteHeader bool
+	enableGzip  bool
 }
 
-func (w gzipResponseWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.writer.Write(b)
+}
+
+func (w *gzipResponseWriter) WriteHeader(statusCode int) {
+	if w.wroteHeader {
+		return
+	}
+	w.wroteHeader = true
+	w.status = statusCode
+
+	if w.enableGzip && !isRedirectStatus(statusCode) && isCompressibleContentType(w.Header().Get("Content-Type")) {
+		gz, err := gzip.NewWriterLevel(w.ResponseWriter, gzip.BestCompression)
+		if err == nil {
+			w.gz = gz
+			w.writer = gz
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Del("Content-Length")
+		}
+	}
+
+	w.ResponseWriter.WriteHeader(statusCode)
 }
 
 func WithGzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !supportsGzip(r) || (!isJSONContent(r) && !isHTMLContent(r)) {
+		if !supportsGzip(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		gz, err := gzip.NewWriterLevel(w, gzip.BestCompression)
-		if err != nil {
-			io.WriteString(w, err.Error())
-			return
-		}
-		defer gz.Close()
 
-		w.Header().Set("Content-Encoding", "gzip")
-		
-		gzipResponseWriter := gzipResponseWriter{
+		gzipWriter := &gzipResponseWriter{
 			ResponseWriter: w,
-			Writer:         gz,
+			writer:         w,
+			enableGzip:     true,
 		}
-		next.ServeHTTP(gzipResponseWriter, r)
+		next.ServeHTTP(gzipWriter, r)
+		if gzipWriter.gz != nil {
+			gzipWriter.gz.Close()
+		}
 	})
 }
 
 func supportsGzip(r *http.Request) bool {
-	log.Printf("%s", r.Header.Get("Accept-Encoding"))
 	return strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 }
 
-func isJSONContent(r *http.Request) bool {
-	log.Printf("%s", r.Header.Get("Content-Type"))
-	return r.Header.Get("Content-Type") == "application/json"
+func isCompressibleContentType(contentType string) bool {
+	return strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")
 }
 
-func isHTMLContent(r *http.Request) bool {
-	log.Printf("%s", r.Header.Get("Content-Type"))
-	return r.Header.Get("Content-Type") == "text/html"
+func isRedirectStatus(statusCode int) bool {
+	return statusCode >= 300 && statusCode < 400
 }
