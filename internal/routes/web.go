@@ -10,7 +10,7 @@ import (
 func InitWebRoutes(r *chi.Mux) {
 	base := service.GetBasePrefix()
 
-	r.Use(middlewares.WithLogging)
+	r.Use(middlewares.WithGzip, middlewares.WithLogging)
 
 	r.Get(base+"{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
