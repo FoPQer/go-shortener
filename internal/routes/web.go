@@ -14,4 +14,5 @@ func InitWebRoutes(r *chi.Mux) {
 
 	r.Get(base+"{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
+	r.Post("/shorten", handler.PostURLByJson)
 }

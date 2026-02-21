@@ -112,3 +112,51 @@ func TestPostUrl(t *testing.T) {
 		})
 	}
 }
+
+func TestPostURLByJson(t *testing.T) {
+	type want struct {
+		code        int
+		contentType string
+		isEmptyBody bool
+	}
+	tests := []struct {
+		name  string
+		urls  *model.Urls
+		body  string
+		want  want
+	}{
+		{
+			name:  "valid json",
+			urls:  model.NewUrls(),
+			body:  `{"url":"https://priem.mirea.ru/lk"}`,
+			want: want{
+				code:        201,
+				contentType: "application/json",
+				isEmptyBody: false,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repository.SetUrls(tt.urls)
+			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewBuffer([]byte(tt.body)))
+			request.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			handler.PostURLByJson(w, request)
+
+			res := w.Result()
+			assert.Equal(t, tt.want.code, res.StatusCode)
+			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+			require.NoError(t, err)
+			if tt.want.isEmptyBody {
+				assert.Empty(t, resBody)
+			} else {
+				assert.NotEmpty(t, resBody)
+			}
+			if tt.want.contentType != "" {
+				assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
+			}
+		})
+	}
+}

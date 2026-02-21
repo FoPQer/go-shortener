@@ -46,3 +46,37 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(target))
 }
+
+func PostURLByJson(res http.ResponseWriter, req *http.Request) {
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "", 400)
+		return
+	}
+	if len(body) == 0 {
+		http.Error(res, "", 400)
+		return
+	}
+
+	url, err := service.GetURLFromJson(body)
+	if err != nil {
+		http.Error(res, "", 400)
+		return
+	}
+
+	target, err := service.SetURL(string(url))
+	if err != nil {
+		http.Error(res, "", 400)
+		return
+	}
+
+	out, err := service.SetURLToJson(target)
+	if err != nil {
+		http.Error(res, "", 400)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(out)
+}
