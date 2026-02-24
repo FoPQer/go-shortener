@@ -16,6 +16,7 @@ type Urls struct {
 }
 
 func NewUrls() *Urls {
+	
 	return &Urls{
 		Urls: make(map[string]string),
 	}
