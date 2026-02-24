@@ -3,6 +3,7 @@ package middlewares
 import (
 	"compress/gzip"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -19,6 +20,7 @@ func (w gzipResponseWriter) Write(b []byte) (int, error) {
 func WithGzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !supportsGzip(r) || !isCompressibleContentType(r.Header.Get("Content-Type")) {
+			log.Printf("Content-type: %s", r.Header.Get("Content-Type"))
 			next.ServeHTTP(w, r)
 			return
 		}
