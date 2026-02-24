@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"encoding/json"
+	"os"
+
 	"github.com/FoPQer/go-shortener/internal/model"
 )
 
@@ -8,8 +11,17 @@ var (
 	urls []*model.Urls
 )
 
-func InitUrls() {
-	urls = append(urls, model.NewUrls())
+func InitUrls(filePath string) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		urls = make([]*model.Urls, 0)
+		return
+	}
+	if len(data) == 0 {
+		urls = make([]*model.Urls, 0)
+	} else {
+		json.Unmarshal(data, &urls)
+	}
 }
 
 func GetUrls() []*model.Urls {
@@ -29,9 +41,10 @@ func GetURLByShortURL(shortURL string) (string, error) {
 	return "", model.ErrBadValueReceive
 }
 
-func AddURL(original, shortURL string) {
+func AddURL(original, shortURL string) *model.Urls {
 	u := model.NewUrls()
 	u.SetOriginal(original)
 	u.SetShortURL(shortURL)
 	urls = append(urls, u)
+	return u
 }

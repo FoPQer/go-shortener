@@ -15,7 +15,7 @@ func main() {
 	flags.ParseFlags()
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r)
-	repository.InitUrls()
+	repository.InitUrls(service.GetFileStoragePath())
 	logger.InitLogger()
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {

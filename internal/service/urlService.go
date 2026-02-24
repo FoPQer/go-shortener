@@ -23,6 +23,8 @@ func GetURL(shortURL string) (string, error) {
 func SetURL(fullURL string) (string, error) {
 	shortURL := newID()
 	repository.AddURL(fullURL, shortURL)
+	
+	WriteToFile(GetFileStoragePath())
 
 	target, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), shortURL)
 	if err != nil {

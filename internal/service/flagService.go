@@ -8,8 +8,6 @@ import (
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 )
 
-var fileStoragePath string
-
 func GetRunAddr() string {
 	if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
 		return url.PathEscape(addr)
@@ -39,28 +37,10 @@ func GetBasePrefix() string {
 	return outBase
 }
 
-func initFileStoragePath() string {
-	var filePath string
-
-	if path := os.Getenv("FILE_STORAGE_PATH"); path != "" {
-		filePath = path
-	} else {
-		filePath = flags.GetFlagFileStoragePath()
-	}
-	
-	file, err := os.Open(filePath)
-	if err != nil {
-		file, err = os.Create(filePath)
-	}
-	file.Close()
-
-	fileStoragePath = filePath
-	return filePath
-}
-
 func GetFileStoragePath() string {
-	if fileStoragePath == "" {
-		return initFileStoragePath()
+	if path := os.Getenv("FILE_STORAGE_PATH"); path != "" {
+		return path
+	} else {
+		return flags.GetFlagFileStoragePath()
 	}
-	return fileStoragePath
 }
