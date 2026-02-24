@@ -28,7 +28,10 @@ func TestGetUrl(t *testing.T) {
 	}{
 		{
 			name:  "without value",
-			urls:  &model.Urls{Urls: map[string]string{"RVHUL6VG": "https://priem.mirea.ru/lk"}},
+			urls:  &model.Urls{
+				Original: "https://priem.mirea.ru/lk/admin/crud/list/user-resources",
+				ShortURL: "67KBAWAO",
+			},
 			value: "",
 			want: want{
 				code:     400,
@@ -37,7 +40,10 @@ func TestGetUrl(t *testing.T) {
 		},
 		{
 			name:  "double get",
-			urls:  &model.Urls{Urls: map[string]string{"RVHUL6VG": "https://priem.mirea.ru/lk"}},
+			urls:  &model.Urls{
+				Original: "https://priem.mirea.ru/lk",
+				ShortURL: "RVHUL6VG",
+			},
 			value: "RVHUL6VG/RVHUL6VG",
 			want: want{
 				code:     400,
@@ -47,7 +53,7 @@ func TestGetUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repository.SetUrls(tt.urls)
+			repository.SetUrls([]*model.Urls{tt.urls})
 			target, _ := url.JoinPath("http://localhost:8080", tt.value)
 			t.Logf("url: %s", target)
 			request := httptest.NewRequest(http.MethodGet, target, nil)
@@ -95,7 +101,7 @@ func TestPostUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repository.SetUrls(tt.urls)
+			repository.SetUrls([]*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
 			w := httptest.NewRecorder()
 			handler.PostURL(w, request)
@@ -138,7 +144,7 @@ func TestPostURLByJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repository.SetUrls(tt.urls)
+			repository.SetUrls([]*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewBuffer([]byte(tt.body)))
 			request.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

@@ -12,35 +12,29 @@ var (
 )
 
 type Urls struct {
-	Urls map[string]string
+	Original string `json:"original_url"`
+	ShortURL string `json:"short_url"`
 }
 
 func NewUrls() *Urls {
-	
 	return &Urls{
-		Urls: make(map[string]string),
+		Original: "",
+		ShortURL: "",
 	}
 }
 
-func (u *Urls) SetURL(id string, url string) error {
-	if id == "" {
-		return ErrEmptyURLID
-	}
-	if url == "" {
-		return ErrEmptyURLURL
-	}
-	_, ok := u.Urls[id]
-	if ok {
-		return ErrIDAlreadyExists
-	}
-	u.Urls[id] = url
-	return nil
+func (u *Urls) GetOriginal() string {
+	return u.Original
 }
 
-func (u *Urls) GetURL(id string) (string, error) {
-	url, ok := u.Urls[id]
-	if !ok {
-		return "", ErrBadValueReceive
-	}
-	return url, nil
+func (u *Urls) SetOriginal(original string) {
+	u.Original = original
+}
+
+func (u *Urls) GetShortURL() string {
+	return u.ShortURL
+}
+
+func (u *Urls) SetShortURL(shortURL string) {
+	u.ShortURL = shortURL
 }

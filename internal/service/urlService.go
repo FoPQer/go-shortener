@@ -7,14 +7,12 @@ import (
 	"github.com/FoPQer/go-shortener/internal/repository"
 )
 
-func NewID() string {
+func newID() string {
 	return rand.Text()[0:8]
 }
 
-func GetURL(id string) (string, error) {
-	urls := repository.GetUrls()
-
-	url, err := urls.GetURL(id)
+func GetURL(shortURL string) (string, error) {
+	url, err := repository.GetURLByShortURL(shortURL)
 	if err != nil {
 		return "", err
 	}
@@ -23,14 +21,10 @@ func GetURL(id string) (string, error) {
 }
 
 func SetURL(fullURL string) (string, error) {
-	urls := repository.GetUrls()
+	shortURL := newID()
+	repository.AddURL(fullURL, shortURL)
 
-	id := NewID()
-	if err := urls.SetURL(id, fullURL); err != nil {
-		return "", err
-	}
-
-	target, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), id)
+	target, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), shortURL)
 	if err != nil {
 		return "", err
 	}

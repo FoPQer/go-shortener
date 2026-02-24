@@ -5,17 +5,33 @@ import (
 )
 
 var (
-	urls *model.Urls
+	urls []*model.Urls
 )
 
 func InitUrls() {
-	urls = model.NewUrls()
+	urls = append(urls, model.NewUrls())
 }
 
-func GetUrls() *model.Urls {
+func GetUrls() []*model.Urls {
 	return urls
 }
 
-func SetUrls(newUrls *model.Urls) {
+func SetUrls(newUrls []*model.Urls) {
 	urls = newUrls
+}
+
+func GetURLByShortURL(shortURL string) (string, error) {
+	for _, u := range urls {
+		if u.GetShortURL() == shortURL {
+			return u.GetOriginal(), nil
+		}
+	}
+	return "", model.ErrBadValueReceive
+}
+
+func AddURL(original, shortURL string) {
+	u := model.NewUrls()
+	u.SetOriginal(original)
+	u.SetShortURL(shortURL)
+	urls = append(urls, u)
 }
