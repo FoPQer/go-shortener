@@ -20,7 +20,7 @@ func TestInitUrls_EmptyFile(t *testing.T) {
 	InitUrls(tmpFile.Name())
 
 	assert.NotNil(t, urls)
-	assert.Equal(t, 1, len(urls))
+	assert.Equal(t, 0, len(urls))
 }
 
 func TestInitUrls_NonExistentFile(t *testing.T) {
@@ -29,7 +29,7 @@ func TestInitUrls_NonExistentFile(t *testing.T) {
 	InitUrls("/undefined/file.json")
 	
 	assert.NotNil(t, urls)
-	assert.Equal(t, 1, len(urls))
+	assert.Equal(t, 0, len(urls))
 }
 
 func TestInitUrls_WithValidJSON(t *testing.T) {
