@@ -2,8 +2,10 @@ package handler
 
 import (
 	"io"
+	"log"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
@@ -14,13 +16,14 @@ func GetURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", 400)
 		return
 	}
+	log.Printf("%v", repository.GetUrls())
 
 	url, err := service.GetURL(id)
 	if err != nil {
 		http.Error(res, "", 400)
 		return
 	}
-
+	log.Printf("%s", url)
 	res.Header().Set("Location", url)
 	res.WriteHeader(307)
 }
@@ -35,12 +38,13 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", 400)
 		return
 	}
-
+	log.Printf("body: %s", string(body))
 	target, err := service.SetURL(string(body))
 	if err != nil {
 		http.Error(res, "", 400)
 		return
 	}
+	log.Printf("target: %s", target)
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
