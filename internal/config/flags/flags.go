@@ -2,12 +2,12 @@ package flags
 
 import (
 	"flag"
-	"net/url"
 )
 
 var (
-	flagRunAddr    string
-	flagBasePrefix string
+	flagRunAddr         string
+	flagBasePrefix      string
+	flagFileStoragePath string
 )
 
 func GetFlagRunAddr() string {
@@ -26,11 +26,18 @@ func SetFlagBasePrefix(newFlagBasePrefix string) {
 	flagBasePrefix = newFlagBasePrefix
 }
 
+func GetFlagFileStoragePath() string {
+	return flagFileStoragePath
+}
+
+func SetFlagFileStoragePath(newFlagFileStoragePath string) {
+	flagFileStoragePath = newFlagFileStoragePath
+}
+
 func ParseFlags() {
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&flagBasePrefix, "b", "", "base prefix to URL")
+	flag.StringVar(&flagFileStoragePath, "f", "urls.json", "file storage path")
 
 	flag.Parse()
-
-	flagBasePrefix = url.PathEscape(flagBasePrefix)
 }
