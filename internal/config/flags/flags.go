@@ -46,7 +46,7 @@ func SetFlagDatabaseURL(newFlagDatabaseURL string) {
 func ParseFlags() {
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&flagBasePrefix, "b", "", "base prefix to URL")
-	flag.StringVar(&flagFileStoragePath, "f", "urls.json", "file storage path")
+	flag.StringVar(&flagFileStoragePath, "f", "", "file storage path")
 	flag.StringVar(&flagDatabaseURL, "d", "", "database connection string")
 
 	flag.Parse()

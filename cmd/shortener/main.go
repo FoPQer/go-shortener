@@ -17,11 +17,12 @@ func main() {
 	flags.ParseFlags()
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r)
-	repository.InitUrls(service.GetFileStoragePath())
 	logger.InitLogger()
 	conn := db.InitPgsql()
 	if conn != nil {
 		defer conn.Close(context.Background())
+	} else if service.GetFileStoragePath() != "" {
+		repository.InitUrls(service.GetFileStoragePath())
 	}
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
