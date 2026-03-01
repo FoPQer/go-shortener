@@ -12,6 +12,7 @@ func InitWebRoutes(r *chi.Mux) {
 
 	r.Use(middlewares.WithGzip, middlewares.WithLogging)
 
+	r.Get("/ping", handler.GetPing)
 	r.Get(base+"{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
 

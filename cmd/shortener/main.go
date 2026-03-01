@@ -20,12 +20,12 @@ func main() {
 	routes.InitWebRoutes(r)
 	repository.InitUrls(service.GetFileStoragePath())
 	logger.InitLogger()
-	сonn, err := db.InitPgsql()
+	err := db.InitPgsql()
 	if err != nil {
 		os.Exit(1)
 		panic(err)
 	}
-	defer сonn.Close(context.Background())
+	defer db.GetDBConn().Close(context.Background())
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)
