@@ -18,14 +18,18 @@ func SetDBConn(conn *pgx.Conn) {
 	db = conn
 }
 
-func InitPgsql() error {
+func InitPgsql() *pgx.Conn {
+	if service.GetDatabaseDSN() == "" {
+		log.Println("Connection to database not found")
+		return nil
+	}
 	conn, err := pgx.Connect(context.Background(), service.GetDatabaseDSN())
 	if err != nil {
 		log.Printf("Unable to connect to database: %v\n", err)
-		return err
+		return nil
 	}
 	SetDBConn(conn)
 	log.Println("Connected to database successfully")
 
-	return nil
+	return conn
 }

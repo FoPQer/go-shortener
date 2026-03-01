@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"os"
 
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
@@ -20,12 +19,10 @@ func main() {
 	routes.InitWebRoutes(r)
 	repository.InitUrls(service.GetFileStoragePath())
 	logger.InitLogger()
-	err := db.InitPgsql()
-	if err != nil {
-		os.Exit(1)
-		panic(err)
+	conn := db.InitPgsql()
+	if conn != nil {
+		defer conn.Close(context.Background())
 	}
-	defer db.GetDBConn().Close(context.Background())
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)
