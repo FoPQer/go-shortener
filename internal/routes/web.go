@@ -1,13 +1,14 @@
 package routes
 
 import (
-	"github.com/FoPQer/go-shortener/internal/handler"
+	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/middlewares"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
-func InitWebRoutes(r *chi.Mux) {
+func InitWebRoutes(r *chi.Mux, urlService *service.URLService, jsonService *service.JSONService) {
+	handler := handlers.NewHandler(urlService, jsonService)
 	base := service.GetBasePrefix()
 
 	r.Use(middlewares.WithGzip, middlewares.WithLogging)

@@ -1,4 +1,4 @@
-package handler
+package handlers
 
 import (
 	"context"
@@ -8,20 +8,28 @@ import (
 	"time"
 
 	"github.com/FoPQer/go-shortener/internal/config/db"
-	"github.com/FoPQer/go-shortener/internal/repository"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
-func GetURL(res http.ResponseWriter, req *http.Request) {
+type Handler struct {
+	urlService *service.URLService
+	jsonService *service.JSONService
+}
+
+func NewHandler(urlService *service.URLService, jsonService *service.JSONService) *Handler {
+	return &Handler{urlService: urlService, jsonService: jsonService}
+}
+
+func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 	id := chi.URLParam(req, "id")
 	if id == "" {
 		http.Error(res, "", 400)
 		return
 	}
-	log.Printf("%v", repository.GetUrls())
+	log.Printf("%v", h.urlService.GetUrls())
 
-	url, err := service.GetURL(id)
+	url, err := h.urlService.GetURL(id)
 	if err != nil {
 		http.Error(res, "", 400)
 		return
@@ -31,7 +39,7 @@ func GetURL(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(307)
 }
 
-func PostURL(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, "", 400)
@@ -42,7 +50,7 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Printf("body: %s", string(body))
-	target, err := service.SetURL(string(body))
+	target, err := h.urlService.SetURL(string(body))
 	if err != nil {
 		http.Error(res, "", 400)
 		return
@@ -54,7 +62,7 @@ func PostURL(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(target))
 }
 
-func PostURLByJSON(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, "", http.StatusBadRequest)
@@ -65,19 +73,19 @@ func PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	url, err := service.GetURLFromJSON(body)
+	url, err := h.jsonService.GetURLFromJSON(body)
 	if err != nil {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 
-	target, err := service.SetURL(string(url))
+	target, err := h.urlService.SetURL(string(url))
 	if err != nil {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 
-	out, err := service.SetURLToJSON(target)
+	out, err := h.jsonService.SetURLToJSON(target)
 	if err != nil {
 		http.Error(res, "", http.StatusBadRequest)
 		return
@@ -88,7 +96,7 @@ func PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	res.Write(out)
 }
 
-func GetPing(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) GetPing(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
     defer cancel()
     if err := db.GetDBConn().Ping(ctx); err != nil {

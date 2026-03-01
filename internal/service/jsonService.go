@@ -10,7 +10,14 @@ type OutputJSONURL struct {
 	Result string `json:"result"`
 }
 
-func GetURLFromJSON(input []byte) (string, error) {
+type JSONService struct {
+}
+
+func NewJSONService() *JSONService {
+	return &JSONService{}
+}
+
+func (s *JSONService) GetURLFromJSON(input []byte) (string, error) {
 	var url InputJSONURL
 	if err := json.Unmarshal(input, &url); err != nil {
 		return "", err
@@ -19,7 +26,7 @@ func GetURLFromJSON(input []byte) (string, error) {
 	return url.URL, nil
 }
 
-func SetURLToJSON(input string) ([]byte, error) {
+func (s *JSONService) SetURLToJSON(input string) ([]byte, error) {
 	url := OutputJSONURL{Result: input}
 	
 	result, err := json.Marshal(url)

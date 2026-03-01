@@ -1,4 +1,4 @@
-package handler_test
+package handlers
 
 import (
 	"bytes"
@@ -8,14 +8,19 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/FoPQer/go-shortener/internal/handler"
 	"github.com/FoPQer/go-shortener/internal/model"
-	"github.com/FoPQer/go-shortener/internal/repository"
+	"github.com/FoPQer/go-shortener/internal/repository/urls/memory"
+	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetUrl(t *testing.T) {
+	type container struct {
+		URLService *service.URLService
+	}
+	cont := &container{URLService: service.NewURLService(memory.NewRepository())}
+	handler := NewHandler(cont.URLService, nil)
 	type want struct {
 		code     int
 		location string
@@ -34,7 +39,7 @@ func TestGetUrl(t *testing.T) {
 			},
 			value: "",
 			want: want{
-				code:     400,
+				code:     http.StatusBadRequest,
 				location: "",
 			},
 		},
@@ -46,14 +51,14 @@ func TestGetUrl(t *testing.T) {
 			},
 			value: "RVHUL6VG/RVHUL6VG",
 			want: want{
-				code:     400,
+				code:     http.StatusBadRequest,
 				location: "",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repository.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls([]*model.Urls{tt.urls})
 			target, _ := url.JoinPath("http://localhost:8080", tt.value)
 			t.Logf("url: %s", target)
 			request := httptest.NewRequest(http.MethodGet, target, nil)
@@ -70,6 +75,11 @@ func TestGetUrl(t *testing.T) {
 }
 
 func TestPostUrl(t *testing.T) {
+	type container struct {
+		URLService *service.URLService
+	}
+	cont := &container{URLService: service.NewURLService(memory.NewRepository())}
+	handler := NewHandler(cont.URLService, nil)
 	type want struct {
 		code        int
 		isEmptyBody bool
@@ -82,26 +92,26 @@ func TestPostUrl(t *testing.T) {
 	}{
 		{
 			name:  "alone set",
-			urls:  model.NewUrls(),
+			urls:  model.NewUrls("", ""),
 			value: "https://priem.mirea.ru/lk",
 			want: want{
-				code:        201,
+				code:        http.StatusCreated,
 				isEmptyBody: false,
 			},
 		},
 		{
 			name:  "empty value",
-			urls:  model.NewUrls(),
+			urls:  model.NewUrls("", ""),
 			value: "",
 			want: want{
-				code:        400,
+				code:        http.StatusBadRequest,
 				isEmptyBody: true,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repository.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls([]*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
 			w := httptest.NewRecorder()
 			handler.PostURL(w, request)
@@ -120,6 +130,15 @@ func TestPostUrl(t *testing.T) {
 }
 
 func TestPostURLByJSON(t *testing.T) {
+	type container struct {
+		URLService *service.URLService
+		JSONService *service.JSONService
+	}
+	cont := &container{
+		URLService: service.NewURLService(memory.NewRepository()),
+		JSONService: service.NewJSONService(),
+	}
+	handler := NewHandler(cont.URLService, cont.JSONService)
 	type want struct {
 		code        int
 		contentType string
@@ -133,10 +152,10 @@ func TestPostURLByJSON(t *testing.T) {
 	}{
 		{
 			name:  "valid json",
-			urls:  model.NewUrls(),
+			urls:  model.NewUrls("", ""),
 			body:  `{"url":"https://priem.mirea.ru/lk"}`,
 			want: want{
-				code:        201,
+				code:        http.StatusCreated,
 				contentType: "application/json",
 				isEmptyBody: false,
 			},
@@ -144,7 +163,7 @@ func TestPostURLByJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repository.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls([]*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewBuffer([]byte(tt.body)))
 			request.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

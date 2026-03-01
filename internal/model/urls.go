@@ -16,10 +16,10 @@ type Urls struct {
 	ShortURL string `json:"short_url"`
 }
 
-func NewUrls() *Urls {
+func NewUrls(original, shortURL string) *Urls {
 	return &Urls{
-		Original: "",
-		ShortURL: "",
+		Original: original,
+		ShortURL: shortURL,
 	}
 }
 
