@@ -49,6 +49,6 @@ func GetDatabaseDSN() string {
 	if dsn := os.Getenv("DATABASE_DSN"); dsn != "" {
 		return dsn
 	} else {
-		return flags.GetFlagDatabaseUrl()
+		return flags.GetFlagDatabaseURL()
 	}
 }
