@@ -42,14 +42,17 @@ func WithLogging(h http.Handler) http.Handler {
 			ResponseWriter: w,
 			responseData:   responseData,
 		}
+		logger.GetSugar().Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"header", r.Header,
+		)
+
 		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
 
 		logger.GetSugar().Infoln(
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"header", r.Header,
 			"duration", duration,
 			"status", responseData.status,
 			"size", responseData.size,

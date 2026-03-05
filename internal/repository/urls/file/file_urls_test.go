@@ -181,7 +181,8 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u := repo.AddURL("https://example.com", "GJFTZTEQ")
+				u, err := repo.AddURL("https://example.com", "GJFTZTEQ")
+				require.NoError(t, err)
 				assert.NotNil(t, u)
 				assert.Equal(t, "https://example.com", u.GetOriginal())
 				assert.Equal(t, "GJFTZTEQ", u.GetShortURL())
@@ -221,7 +222,8 @@ func TestAddURL(t *testing.T) {
 				return createTempFileWithData(t, testUrls)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u := repo.AddURL("https://new.com", "new")
+				u, err := repo.AddURL("https://new.com", "new")
+				require.NoError(t, err)
 				assert.NotNil(t, u)
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {

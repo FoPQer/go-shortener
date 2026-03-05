@@ -35,7 +35,10 @@ func (s *URLService) GetURL(shortURL string) (string, error) {
 }
 
 func (s *URLService) SetURL(fullURL string) (string, error) {
-	u := s.repo.AddURL(fullURL, newID())
+	u, err := s.repo.AddURL(fullURL, newID())
+	if err != nil {
+		return "", err
+	}
 	log.Printf("Added URL: %s -> %s", u.GetOriginal(), u.GetShortURL())
 	target, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), u.GetShortURL())
 	if err != nil {

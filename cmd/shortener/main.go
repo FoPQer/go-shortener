@@ -20,9 +20,10 @@ func main() {
 	if conn != nil {
 		defer conn.Close(context.Background())
 	} 
-
-    factory := factory.NewRepositoryFactory(conn, service.GetFileStoragePath())
-    urlRepo, err := factory.CreateUrlsRepository(context.Background())
+		
+    urlRepo, err := factory.
+		NewRepositoryFactory(conn, service.GetFileStoragePath()).
+		CreateUrlsRepository(context.Background())
     if err != nil {
         panic(err)
     }

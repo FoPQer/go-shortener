@@ -83,7 +83,7 @@ func (r *DBUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	return original, nil
 }
 
-func (r *DBUrlsRepository) AddURL(original, shortURL string) *model.Urls {
+func (r *DBUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	
@@ -94,11 +94,12 @@ func (r *DBUrlsRepository) AddURL(original, shortURL string) *model.Urls {
 		shortURL,
 	)
 	if err != nil {
-		return nil
+		log.Printf("Error while adding url: %s", err.Error())
+		return nil, err
 	}
 
 	<-ctx.Done()
 	log.Printf("Inserted %d row(s)", result.RowsAffected())
-	return model.NewUrls(original, shortURL)
+	return model.NewUrls(original, shortURL), nil
 }
 

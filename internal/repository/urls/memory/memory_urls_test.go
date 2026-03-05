@@ -68,13 +68,15 @@ func TestGetURLByShortURL_EmptyURLs(t *testing.T) {
 func TestAddURL(t *testing.T) {
 	repo := NewRepository()
 
-	u := repo.AddURL("https://example.com", "GJFTZTEQ")
+	u, err := repo.AddURL("https://example.com", "GJFTZTEQ")
+	require.NoError(t, err)
 
 	assert.Equal(t, 1, len(repo.GetUrls()))
 	assert.Equal(t, "https://example.com", u.GetOriginal())
 	assert.Equal(t, "GJFTZTEQ", u.GetShortURL())
 
-	u2 := repo.AddURL("https://google.com", "NWEOHOB6")
+	u2, err := repo.AddURL("https://google.com", "NWEOHOB6")
+	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(repo.GetUrls()))
 	assert.Equal(t, "https://google.com", u2.GetOriginal())

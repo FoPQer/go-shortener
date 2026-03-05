@@ -47,7 +47,7 @@ func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	return "", model.ErrBadValueReceive
 }
 
-func (r *FileUrlsRepository) AddURL(original, shortURL string) *model.Urls {
+func (r *FileUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error) {
 	urls := r.GetUrls()
 	
 	u := model.NewUrls(original, shortURL)
@@ -56,5 +56,5 @@ func (r *FileUrlsRepository) AddURL(original, shortURL string) *model.Urls {
 	
 	utils.WriteToFile(r.filePath, urls)
 	
-	return u
+	return u, nil
 }

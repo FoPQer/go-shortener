@@ -31,8 +31,8 @@ func (r *MemoryUrlsRepository) GetURLByShortURL(shortURL string) (string, error)
 	return "", model.ErrBadValueReceive
 }
 
-func (r *MemoryUrlsRepository) AddURL(original, shortURL string) *model.Urls {
+func (r *MemoryUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error) {
 	u := model.NewUrls(original, shortURL)
 	r.urls = append(r.urls, u)
-	return u
+	return u, nil
 }
