@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/FoPQer/go-shortener/internal/config/db"
+	"github.com/FoPQer/go-shortener/internal/logger"
+	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
@@ -34,38 +36,40 @@ func (h *Handler) GetPing(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 	id := chi.URLParam(req, "id")
 	if id == "" {
-		http.Error(res, "", 400)
+		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	log.Printf("%v", h.urlService.GetUrls())
+	logger.GetSugar().Infof("%v", h.urlService.GetUrls())
 
 	url, err := h.urlService.GetURL(id)
 	if err != nil {
-		http.Error(res, "", 400)
+		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	log.Printf("%s", url)
+	logger.GetSugar().Infof("%s", url)
 	res.Header().Set("Location", url)
-	res.WriteHeader(307)
+	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		http.Error(res, "", 400)
+		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 	if len(body) == 0 {
-		http.Error(res, "", 400)
+		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	log.Printf("body: %s", string(body))
+	logger.GetSugar().Infof("body: %s", string(body))
 	target, err := h.urlService.SetURL(string(body))
-	if err != nil {
-		http.Error(res, "", 400)
+	if errors.Is(err, model.ErrURLAlreadyExists) {
+		res.WriteHeader(http.StatusConflict)
+	} else if err != nil {
+		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	log.Printf("target: %s", target)
+	logger.GetSugar().Infof("target: %s", target)
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
@@ -90,7 +94,10 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	}
 
 	target, err := h.urlService.SetURL(string(url))
-	if err != nil {
+	if errors.Is(err, model.ErrURLAlreadyExists) {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusConflict)
+	} else if err != nil {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}

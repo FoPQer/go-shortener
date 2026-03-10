@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/service"
@@ -24,16 +23,16 @@ func SetDBConn(conn *pgx.Conn) {
 
 func InitPgsql() *pgx.Conn {
 	if service.GetDatabaseDSN() == "" {
-		log.Println("Connection to database not found")
+		logger.GetSugar().Errorln("Connection to database not found")
 		return nil
 	}
 	conn, err := pgx.Connect(context.Background(), service.GetDatabaseDSN())
 	if err != nil {
-		log.Printf("Unable to connect to database: %v\n", err)
+		logger.GetSugar().Errorf("Unable to connect to database: %v\n", err)
 		return nil
 	}
 	SetDBConn(conn)
-	log.Println("Connected to database successfully")
+	logger.GetSugar().Infoln("Connected to database successfully")
 	if err := runMigrations(); err != nil {
 		logger.GetSugar().Errorf("Unable to run migrations: %v\n", err)
 		return nil

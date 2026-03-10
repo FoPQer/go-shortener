@@ -1,0 +1,1 @@
+DROP INDEX idx_urls_original_url;

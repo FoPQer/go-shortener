@@ -22,6 +22,16 @@ func (r *MemoryUrlsRepository) SetUrls(newUrls []*model.Urls) {
 	r.urls = newUrls
 }
 
+func (r *MemoryUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
+	for _, u := range r.urls {
+		if u.GetOriginal() == originalURL {
+			return u, nil
+		}
+	}
+	return nil, model.ErrBadValueReceive
+}
+
+
 func (r *MemoryUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	for _, u := range r.urls {
 		if u.GetShortURL() == shortURL {

@@ -37,6 +37,17 @@ func (r *FileUrlsRepository) SetUrls(newUrls []*model.Urls) {
 	utils.WriteToFile(r.filePath, newUrls)
 }
 
+func (r *FileUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
+	urls := r.GetUrls()
+	for _, u := range urls {
+		if u.GetOriginal() == originalURL {
+			return u, nil
+		}
+	}
+	return nil, model.ErrBadValueReceive
+}
+
+
 func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	urls := r.GetUrls()
 	for _, u := range urls {

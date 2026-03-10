@@ -2,9 +2,10 @@ package service
 
 import (
 	"crypto/rand"
-	"log"
+	"errors"
 	"net/url"
 
+	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
 )
@@ -36,13 +37,20 @@ func (s *URLService) GetURL(shortURL string) (string, error) {
 
 func (s *URLService) SetURL(fullURL string) (string, error) {
 	id := newID()
-	u, err := s.repo.AddURL(fullURL, id)
-	if err != nil {
+	url, err := s.repo.AddURL(fullURL, id)
+	if errors.Is(err, model.ErrURLAlreadyExists) {
+		short, makeErr := makeShortURL(url.GetShortURL())
+		if makeErr != nil {
+			return "", errors.Join(err, makeErr)
+		}
+
+		return short, model.ErrURLAlreadyExists
+	} else if err != nil {
 		return "", err
 	}
-	log.Printf("Added URL: %s -> %s", u.GetOriginal(), u.GetShortURL()) 
+	logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL()) 
 
-	return makeShortURL(u.GetShortURL())
+	return makeShortURL(url.GetShortURL())
 }
 
 func (s *URLService) SetBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
@@ -53,7 +61,7 @@ func (s *URLService) SetBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error)
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL())
+		logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL())
 		result = append(result, url)
 	}
 	return result, nil
