@@ -42,7 +42,7 @@ func InitPgsql() *pgx.Conn {
 	return conn
 }
 
-func runMigrations() (error) {
+func runMigrations() error {
 	m, err := migrate.New(
 		"file://migrations",
 		service.GetDatabaseDSN(),

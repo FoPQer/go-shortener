@@ -19,5 +19,6 @@ func InitWebRoutes(r *chi.Mux, urlService *service.URLService, jsonService *serv
 
 	r.Route("/api", func(api chi.Router) {
 		api.Post("/shorten", handler.PostURLByJSON)
+		api.Post("/shorten/batch", handler.PostBatchURLByJSON)
 	})
 }

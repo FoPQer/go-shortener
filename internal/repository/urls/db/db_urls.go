@@ -11,12 +11,47 @@ import (
 
 type DBUrlsRepository struct {
 	conn *pgx.Conn
+	tx pgx.Tx
 }
 
 func NewRepository(conn *pgx.Conn) *DBUrlsRepository {
 	return &DBUrlsRepository{
 		conn: conn,
+		tx:   nil,
 	}
+}
+
+func (r *DBUrlsRepository) BeginTransaction(ctx context.Context) error {
+	tx, err := r.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	r.tx = tx
+	return nil
+}
+
+func (r *DBUrlsRepository) CommitTransaction(ctx context.Context) error {
+	if r.tx == nil {
+		return nil
+	}
+	err := r.tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
+	r.tx = nil
+	return nil
+}
+
+func (r *DBUrlsRepository) RollbackTransaction(ctx context.Context) error {
+	if r.tx == nil {
+		return nil
+	}
+	err := r.tx.Rollback(ctx)
+	if err != nil {
+		return err
+	}
+	r.tx = nil
+	return nil
 }
 
 func (r *DBUrlsRepository) GetUrls() []*model.Urls {
@@ -86,20 +121,37 @@ func (r *DBUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 func (r *DBUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	
-	result, err := r.conn.Exec(
-		ctx,
-		"INSERT INTO urls (original_url, short_url) VALUES ($1, $2)",
-		original,
-		shortURL,
-	)
-	if err != nil {
-		log.Printf("Error while adding url: %s", err.Error())
-		return nil, err
+
+	query := "INSERT INTO urls (original_url, short_url) VALUES ($1, $2)"
+
+	if r.tx != nil {
+		_, err := r.tx.Exec(
+			ctx,
+			query,
+			original,
+			shortURL,
+		)
+		if err != nil {
+			log.Printf("Error while adding url: %s", err.Error())
+			r.tx.Rollback(ctx)
+			return nil, err
+		}
+	} else {
+		result, err := r.conn.Exec(
+			ctx,
+			query,
+			original,
+			shortURL,
+		)
+		if err != nil {
+			log.Printf("Error while adding url: %s", err.Error())
+			return nil, err
+		}
+
+		<-ctx.Done()
+		log.Printf("Inserted %d row(s)", result.RowsAffected())
 	}
 
-	<-ctx.Done()
-	log.Printf("Inserted %d row(s)", result.RowsAffected())
 	return model.NewUrls(original, shortURL), nil
 }
 

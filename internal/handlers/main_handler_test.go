@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -185,3 +186,46 @@ func TestPostURLByJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestPostBatchURLByJSON(t *testing.T) {
+	type container struct {
+		URLService  *service.URLService
+		JSONService *service.JSONService
+	}
+	cont := &container{
+		URLService:  service.NewURLService(memory.NewRepository()),
+		JSONService: service.NewJSONService(),
+	}
+	handler := NewHandler(cont.URLService, cont.JSONService)
+
+	body := `[
+		{"correlation_id":"abc12345","original_url":"https://priem.mirea.ru/lk"},
+		{"correlation_id":"xyz67890","original_url":"https://example.com/path"}
+	]`
+
+	request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten/batch", bytes.NewBuffer([]byte(body)))
+	request.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.PostBatchURLByJSON(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+
+	resBody, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resBody)
+
+	var out []service.OutputJSONBatchURL
+	require.NoError(t, json.Unmarshal(resBody, &out))
+	require.Len(t, out, 2)
+
+	assert.Equal(t, "abc12345", out[0].CorrelationID)
+	assert.Equal(t, "https://priem.mirea.ru/lk", out[0].ShortURL)
+	assert.Equal(t, "xyz67890", out[1].CorrelationID)
+	assert.Equal(t, "https://example.com/path", out[1].ShortURL)
+}
+
+

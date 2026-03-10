@@ -21,6 +21,16 @@ func NewHandler(urlService *service.URLService, jsonService *service.JSONService
 	return &Handler{urlService: urlService, jsonService: jsonService}
 }
 
+func (h *Handler) GetPing(res http.ResponseWriter, req *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+    defer cancel()
+    if err := db.GetDBConn().Ping(ctx); err != nil {
+        http.Error(res, "", http.StatusInternalServerError)
+        return
+    }
+	res.WriteHeader(http.StatusOK)
+}
+
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 	id := chi.URLParam(req, "id")
 	if id == "" {
@@ -96,12 +106,32 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	res.Write(out)
 }
 
-func (h *Handler) GetPing(res http.ResponseWriter, req *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-    defer cancel()
-    if err := db.GetDBConn().Ping(ctx); err != nil {
-        http.Error(res, "", http.StatusInternalServerError)
-        return
-    }
-	res.WriteHeader(http.StatusOK)
+func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request) {
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+	if len(body) == 0 {
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+	urls, err := h.jsonService.GetBatchURLFromJSON(body)
+	if err != nil {
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+	targets, err := h.urlService.SetBatchURL(urls)
+	if err != nil {
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+	out, err := h.jsonService.SetBatchURLToJSON(targets)
+	if err != nil {
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(out)
 }
