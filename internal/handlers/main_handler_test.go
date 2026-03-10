@@ -6,20 +6,85 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"testing"
 
+	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
-	"github.com/FoPQer/go-shortener/internal/repository/urls/memory"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var testLoggerOnce sync.Once
+
+func initTestLogger(t *testing.T) {
+	t.Helper()
+
+	testLoggerOnce.Do(func() {
+		err := logger.InitLogger()
+		require.NoError(t, err)
+	})
+}
+
+type uniqueMemoryRepository struct {
+	urls []*model.Urls
+}
+
+func newUniqueMemoryRepository() *uniqueMemoryRepository {
+	return &uniqueMemoryRepository{
+		urls: make([]*model.Urls, 0),
+	}
+}
+
+func (r *uniqueMemoryRepository) GetUrls() []*model.Urls {
+	return r.urls
+}
+
+func (r *uniqueMemoryRepository) SetUrls(newUrls []*model.Urls) {
+	r.urls = newUrls
+}
+
+func (r *uniqueMemoryRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
+	for _, u := range r.urls {
+		if u.GetOriginal() == originalURL {
+			return u, nil
+		}
+	}
+
+	return nil, model.ErrBadValueReceive
+}
+
+func (r *uniqueMemoryRepository) GetURLByShortURL(shortURL string) (string, error) {
+	for _, u := range r.urls {
+		if u.GetShortURL() == shortURL {
+			return u.GetOriginal(), nil
+		}
+	}
+
+	return "", model.ErrBadValueReceive
+}
+
+func (r *uniqueMemoryRepository) AddURL(original, shortURL string) (*model.Urls, error) {
+	for _, u := range r.urls {
+		if u.GetOriginal() == original {
+			return u, model.ErrURLAlreadyExists
+		}
+	}
+
+	u := model.NewUrls(original, shortURL)
+	r.urls = append(r.urls, u)
+
+	return u, nil
+}
+
 func TestGetUrl(t *testing.T) {
+	initTestLogger(t)
+
 	type container struct {
 		URLService *service.URLService
 	}
-	cont := &container{URLService: service.NewURLService(memory.NewRepository())}
+	cont := &container{URLService: service.NewURLService(newUniqueMemoryRepository())}
 	handler := NewHandler(cont.URLService, nil)
 	type want struct {
 		code     int
@@ -75,10 +140,12 @@ func TestGetUrl(t *testing.T) {
 }
 
 func TestPostUrl(t *testing.T) {
+	initTestLogger(t)
+
 	type container struct {
 		URLService *service.URLService
 	}
-	cont := &container{URLService: service.NewURLService(memory.NewRepository())}
+	cont := &container{URLService: service.NewURLService(newUniqueMemoryRepository())}
 	handler := NewHandler(cont.URLService, nil)
 	type want struct {
 		code        int
@@ -100,6 +167,15 @@ func TestPostUrl(t *testing.T) {
 			},
 		},
 		{
+			name:  "existing original url",
+			urls:  model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
+			value: "https://priem.mirea.ru/lk",
+			want: want{
+				code:        http.StatusConflict,
+				isEmptyBody: false,
+			},
+		},
+		{
 			name:  "empty value",
 			urls:  model.NewUrls("", ""),
 			value: "",
@@ -112,7 +188,7 @@ func TestPostUrl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cont.URLService.SetUrls([]*model.Urls{tt.urls})
-			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
+			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
 			w := httptest.NewRecorder()
 			handler.PostURL(w, request)
 
@@ -124,18 +200,23 @@ func TestPostUrl(t *testing.T) {
 			require.NoError(t, err)
 			if !tt.want.isEmptyBody {
 				assert.NotEmpty(t, resBody)
+				if tt.want.code == http.StatusConflict {
+					assert.Contains(t, string(resBody), tt.urls.GetShortURL())
+				}
 			}
 		})
 	}
 }
 
 func TestPostURLByJSON(t *testing.T) {
+	initTestLogger(t)
+
 	type container struct {
 		URLService *service.URLService
 		JSONService *service.JSONService
 	}
 	cont := &container{
-		URLService: service.NewURLService(memory.NewRepository()),
+		URLService: service.NewURLService(newUniqueMemoryRepository()),
 		JSONService: service.NewJSONService(),
 	}
 	handler := NewHandler(cont.URLService, cont.JSONService)
@@ -160,6 +241,16 @@ func TestPostURLByJSON(t *testing.T) {
 				isEmptyBody: false,
 			},
 		},
+		{
+			name:  "existing original url",
+			urls:  model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
+			body:  `{"url":"https://priem.mirea.ru/lk"}`,
+			want: want{
+				code:        http.StatusConflict,
+				contentType: "application/json",
+				isEmptyBody: false,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -178,6 +269,9 @@ func TestPostURLByJSON(t *testing.T) {
 				assert.Empty(t, resBody)
 			} else {
 				assert.NotEmpty(t, resBody)
+				if tt.want.code == http.StatusConflict {
+					assert.Contains(t, string(resBody), tt.urls.GetShortURL())
+				}
 			}
 			if tt.want.contentType != "" {
 				assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
