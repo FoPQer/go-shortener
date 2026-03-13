@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/FoPQer/go-shortener/internal/model"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
 )
 
 type InputJSONURL struct {
@@ -52,15 +53,15 @@ func (s *JSONService) SetURLToJSON(input string) ([]byte, error) {
 }
 
 func (s *JSONService) GetBatchURLFromJSON(input []byte) ([]*model.Urls, error) {
-	var urls []InputJSONBatchURL
-	if err := json.Unmarshal(input, &urls); err != nil {
+	var inputUrls []InputJSONBatchURL
+	if err := json.Unmarshal(input, &inputUrls); err != nil {
 		return nil, err
 	}
-	if len(urls) == 0 {
-		return nil, model.ErrBadValueReceive
+	if len(inputUrls) == 0 {
+		return nil, urls.ErrBadValueReceive
 	}
 
-	return s.GetUrlsFromInputBatchJSON(urls)
+	return s.GetUrlsFromInputBatchJSON(inputUrls)
 }
 
 func (s *JSONService) SetBatchURLToJSON(input []*model.Urls) ([]byte, error) {

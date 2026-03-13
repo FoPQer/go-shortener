@@ -2,43 +2,44 @@ package db
 
 import (
 	"context"
+	"errors"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var db *pgx.Conn
-
-func GetDBConn() *pgx.Conn {
-	return db
+type PgxConf struct {
+	DB *pgxpool.Pool
 }
 
-func SetDBConn(conn *pgx.Conn) {
-	db = conn
+func (p *PgxConf) GetDBConn() *pgxpool.Pool {
+	return p.DB
 }
 
-func InitPgsql() *pgx.Conn {
+func (p *PgxConf) SetDBConn(conn *pgxpool.Pool) {
+	p.DB = conn
+}
+
+func InitPgsql() (*PgxConf, error) {
 	if service.GetDatabaseDSN() == "" {
-		logger.GetSugar().Errorln("Connection to database not found")
-		return nil
+		return nil, errors.New("connection to database not found")
 	}
-	conn, err := pgx.Connect(context.Background(), service.GetDatabaseDSN())
+	conn, err := pgxpool.New(context.Background(), service.GetDatabaseDSN())
 	if err != nil {
-		logger.GetSugar().Errorf("Unable to connect to database: %v\n", err)
-		return nil
+		return nil, err
 	}
-	SetDBConn(conn)
+	var pgxConf PgxConf
+	pgxConf.SetDBConn(conn)
 	logger.GetSugar().Infoln("Connected to database successfully")
 	if err := runMigrations(); err != nil {
-		logger.GetSugar().Errorf("Unable to run migrations: %v\n", err)
-		return nil
+		return nil, err
 	}
 	
-	return conn
+	return &pgxConf, nil
 }
 
 func runMigrations() error {
@@ -47,11 +48,9 @@ func runMigrations() error {
 		service.GetDatabaseDSN(),
 	)
 	if err != nil {
-		logger.GetSugar().Errorf("Unable to create migration: %v\n", err)
 		return err
 	}
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		logger.GetSugar().Errorf("Unable to apply migration: %v\n", err)
 		return err
 	}
 	return nil

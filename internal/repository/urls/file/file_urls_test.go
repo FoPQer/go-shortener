@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/FoPQer/go-shortener/internal/model"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -137,7 +138,7 @@ func TestGetURLByShortURL(t *testing.T) {
 			},
 			shortURL:      "nonexistent",
 			expectedURL:   "",
-			expectedError: model.ErrBadValueReceive,
+			expectedError: urls.ErrBadValueReceive,
 		},
 		{
 			name: "Empty file",
@@ -146,7 +147,7 @@ func TestGetURLByShortURL(t *testing.T) {
 			},
 			shortURL:      "any",
 			expectedURL:   "",
-			expectedError: model.ErrBadValueReceive,
+			expectedError: urls.ErrBadValueReceive,
 		},
 	}
 
@@ -159,7 +160,7 @@ func TestGetURLByShortURL(t *testing.T) {
 
 			if tt.expectedError != nil {
 				assert.Error(t, err)
-				assert.Equal(t, tt.expectedError, err)
+				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}

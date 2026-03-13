@@ -11,6 +11,7 @@ import (
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +53,7 @@ func (r *uniqueMemoryRepository) GetURLByOriginalURL(originalURL string) (*model
 		}
 	}
 
-	return nil, model.ErrBadValueReceive
+	return nil, urls.ErrBadValueReceive
 }
 
 func (r *uniqueMemoryRepository) GetURLByShortURL(shortURL string) (string, error) {
@@ -62,13 +63,13 @@ func (r *uniqueMemoryRepository) GetURLByShortURL(shortURL string) (string, erro
 		}
 	}
 
-	return "", model.ErrBadValueReceive
+	return "", urls.ErrBadValueReceive
 }
 
 func (r *uniqueMemoryRepository) AddURL(original, shortURL string) (*model.Urls, error) {
 	for _, u := range r.urls {
 		if u.GetOriginal() == original {
-			return u, model.ErrURLAlreadyExists
+			return u, urls.ErrURLAlreadyExists
 		}
 	}
 

@@ -5,54 +5,19 @@ import (
 	"errors"
 	"time"
 
-	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
-	"github.com/jackc/pgx/v5"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DBUrlsRepository struct {
-	conn *pgx.Conn
-	tx pgx.Tx
+	conn *pgxpool.Pool
 }
 
-func NewRepository(conn *pgx.Conn) *DBUrlsRepository {
+func NewRepository(conn *pgxpool.Pool) *DBUrlsRepository {
 	return &DBUrlsRepository{
 		conn: conn,
-		tx:   nil,
 	}
-}
-
-func (r *DBUrlsRepository) BeginTransaction(ctx context.Context) error {
-	tx, err := r.conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	r.tx = tx
-	return nil
-}
-
-func (r *DBUrlsRepository) CommitTransaction(ctx context.Context) error {
-	if r.tx == nil {
-		return nil
-	}
-	err := r.tx.Commit(ctx)
-	if err != nil {
-		return err
-	}
-	r.tx = nil
-	return nil
-}
-
-func (r *DBUrlsRepository) RollbackTransaction(ctx context.Context) error {
-	if r.tx == nil {
-		return nil
-	}
-	err := r.tx.Rollback(ctx)
-	if err != nil {
-		return err
-	}
-	r.tx = nil
-	return nil
 }
 
 func (r *DBUrlsRepository) GetUrls() []*model.Urls {
@@ -145,54 +110,25 @@ func (r *DBUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error
 
 	query := "INSERT INTO urls (original_url, short_url) VALUES ($1, $2) ON CONFLICT (original_url) DO NOTHING"
 
-	if r.tx != nil {
-		result, err := r.tx.Exec(
-			ctx,
-			query,
-			original,
-			shortURL,
-		)
+	result, err := r.conn.Exec(
+		ctx,
+		query,
+		original,
+		shortURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if result.RowsAffected() == 0 {
+		url, err := r.GetURLByOriginalURL(original)
 		if err != nil {
-			logger.GetSugar().Errorf("Error while adding url: %s", err.Error())
-			r.tx.Rollback(ctx)
-			return nil, err
-		}
-		if result.RowsAffected() == 0 {
-			logger.GetSugar().Errorf("URL already exists: %s", original)
-
-			url, err := r.GetURLByOriginalURL(original)
-			if err != nil {
-				return nil, errors.Join(err, model.ErrURLAlreadyExists)
-			}
-
-			return url, model.ErrURLAlreadyExists
-		}
-	} else {
-		result, err := r.conn.Exec(
-			ctx,
-			query,
-			original,
-			shortURL,
-		)
-		if err != nil {
-			logger.GetSugar().Errorf("Error while adding url: %s", err.Error())
-			return nil, err
-		}
-		if result.RowsAffected() == 0 {
-			logger.GetSugar().Errorf("URL already exists: %s", original)
-
-			url, err := r.GetURLByOriginalURL(original)
-			if err != nil {
-				return nil, errors.Join(err, model.ErrURLAlreadyExists)
-			}
-
-			return url, model.ErrURLAlreadyExists
+			return nil, errors.Join(err, urls.ErrURLAlreadyExists)
 		}
 
-		<-ctx.Done()
-		logger.GetSugar().Infof("Inserted %d row(s)", result.RowsAffected())
+		return url, urls.ErrURLAlreadyExists
 	}
 
+	<-ctx.Done()
 	return model.NewUrls(original, shortURL), nil
 }
 

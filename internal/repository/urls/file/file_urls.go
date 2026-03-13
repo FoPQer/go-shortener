@@ -2,9 +2,11 @@ package file
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/FoPQer/go-shortener/internal/model"
+	repository "github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/FoPQer/go-shortener/internal/utils"
 )
 
@@ -44,7 +46,7 @@ func (r *FileUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Url
 			return u, nil
 		}
 	}
-	return nil, model.ErrBadValueReceive
+	return nil, fmt.Errorf("%w: %s", repository.ErrBadValueReceive, originalURL)
 }
 
 
@@ -55,7 +57,7 @@ func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 			return u.GetOriginal(), nil
 		}
 	}
-	return "", model.ErrBadValueReceive
+	return "", fmt.Errorf("%w: %s", repository.ErrBadValueReceive, shortURL)
 }
 
 func (r *FileUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error) {

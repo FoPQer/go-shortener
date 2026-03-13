@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/FoPQer/go-shortener/internal/model"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +52,7 @@ func TestGetURLByShortURL_NotFound(t *testing.T) {
 	original, err := repo.GetURLByShortURL("nonexistent")
 
 	assert.Error(t, err)
-	assert.Equal(t, model.ErrBadValueReceive, err)
+	assert.Equal(t, urls.ErrBadValueReceive, err)
 	assert.Equal(t, "", original)
 }
 
@@ -61,7 +62,7 @@ func TestGetURLByShortURL_EmptyURLs(t *testing.T) {
 	original, err := repo.GetURLByShortURL("any")
 
 	assert.Error(t, err)
-	assert.Equal(t, model.ErrBadValueReceive, err)
+	assert.Equal(t, urls.ErrBadValueReceive, err)
 	assert.Equal(t, "", original)
 }
 

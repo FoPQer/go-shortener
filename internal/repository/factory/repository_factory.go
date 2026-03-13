@@ -2,21 +2,21 @@ package factory
 
 import (
 	"context"
-	"log"
 
+	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/FoPQer/go-shortener/internal/repository/urls/db"
 	"github.com/FoPQer/go-shortener/internal/repository/urls/file"
 	"github.com/FoPQer/go-shortener/internal/repository/urls/memory"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RepositoryFactory struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 	filePath string
 }
 
-func NewRepositoryFactory(conn *pgx.Conn, filePath string) *RepositoryFactory {
+func NewRepositoryFactory(conn *pgxpool.Pool, filePath string) *RepositoryFactory {
 	return &RepositoryFactory{conn: conn, filePath: filePath}
 }
 
@@ -24,13 +24,13 @@ func (f *RepositoryFactory) CreateUrlsRepository(ctx context.Context) (urls.Repo
 	var repo urls.Repository
 	if f.conn != nil {
 		repo = db.NewRepository(f.conn)
-		log.Println("Working with database repository")
+		logger.GetSugar().Infoln("Working with database repository")
 	} else if f.filePath != "" {
 		repo = file.NewRepository(f.filePath)
-		log.Println("Working with file repository")
+		logger.GetSugar().Infoln("Working with file repository")
 	} else {
 		repo = memory.NewRepository()
-		log.Println("Working with memory repository")
+		logger.GetSugar().Infoln("Working with memory repository")
 	}
 
 	return repo, nil

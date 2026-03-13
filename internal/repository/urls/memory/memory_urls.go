@@ -2,6 +2,7 @@ package memory
 
 import (
 	"github.com/FoPQer/go-shortener/internal/model"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
 )
 
 type MemoryUrlsRepository struct {
@@ -28,7 +29,7 @@ func (r *MemoryUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.U
 			return u, nil
 		}
 	}
-	return nil, model.ErrBadValueReceive
+	return nil, urls.ErrBadValueReceive
 }
 
 
@@ -38,7 +39,7 @@ func (r *MemoryUrlsRepository) GetURLByShortURL(shortURL string) (string, error)
 			return u.GetOriginal(), nil
 		}
 	}
-	return "", model.ErrBadValueReceive
+	return "", urls.ErrBadValueReceive
 }
 
 func (r *MemoryUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error) {

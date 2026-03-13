@@ -6,6 +6,7 @@ import (
 
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
+	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/repository/factory"
 	"github.com/FoPQer/go-shortener/internal/routes"
@@ -16,13 +17,16 @@ import (
 func main() {
 	flags.ParseFlags()
 	logger.InitLogger()
-	conn := db.InitPgsql()
-	if conn != nil {
-		defer conn.Close(context.Background())
+	pgxConf, err := db.InitPgsql()
+	if err != nil {
+		panic(err)
+	}
+	if pgxConf != nil {
+		defer pgxConf.GetDBConn().Close()
 	} 
 		
     urlRepo, err := factory.
-		NewRepositoryFactory(conn, service.GetFileStoragePath()).
+		NewRepositoryFactory(pgxConf.GetDBConn(), service.GetFileStoragePath()).
 		CreateUrlsRepository(context.Background())
     if err != nil {
         panic(err)
@@ -31,8 +35,11 @@ func main() {
     urlService := service.NewURLService(urlRepo)
 	jsonService := service.NewJSONService()
 
+	handler := handlers.NewHandler(urlService, jsonService)
+	dbHandler := handlers.NewDBHandler(pgxConf)
+
 	r := chi.NewRouter()
-	routes.InitWebRoutes(r, urlService, jsonService)
+	routes.InitWebRoutes(r, handler, dbHandler)
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)

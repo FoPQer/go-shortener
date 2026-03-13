@@ -1,6 +1,15 @@
 package urls
 
-import "github.com/FoPQer/go-shortener/internal/model"
+import (
+	"errors"
+
+	"github.com/FoPQer/go-shortener/internal/model"
+)
+
+var (
+	ErrBadValueReceive  = errors.New("value not received")
+	ErrURLAlreadyExists = errors.New("url is already exists")
+)
 
 type Repository interface {
 	GetUrls() []*model.Urls

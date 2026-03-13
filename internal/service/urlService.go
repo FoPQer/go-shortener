@@ -38,13 +38,13 @@ func (s *URLService) GetURL(shortURL string) (string, error) {
 func (s *URLService) SetURL(fullURL string) (string, error) {
 	id := newID()
 	url, err := s.repo.AddURL(fullURL, id)
-	if errors.Is(err, model.ErrURLAlreadyExists) {
+	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		short, makeErr := makeShortURL(url.GetShortURL())
 		if makeErr != nil {
 			return "", errors.Join(err, makeErr)
 		}
 
-		return short, model.ErrURLAlreadyExists
+		return short, urls.ErrURLAlreadyExists
 	} else if err != nil {
 		return "", err
 	}

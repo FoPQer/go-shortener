@@ -7,13 +7,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func InitWebRoutes(r *chi.Mux, urlService *service.URLService, jsonService *service.JSONService) {
-	handler := handlers.NewHandler(urlService, jsonService)
+func InitWebRoutes(r *chi.Mux, handler *handlers.Handler, dbHandler *handlers.DBHandler) {
 	base := service.GetBasePrefix()
 
 	r.Use(middlewares.WithGzip, middlewares.WithLogging)
 
-	r.Get("/ping", handler.GetPing)
+	r.Get("/ping", dbHandler.GetPing)
 	r.Get(base+"{id}", handler.GetURL)
 	r.Post("/", handler.PostURL)
 
