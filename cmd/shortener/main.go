@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/config/db"
@@ -18,10 +19,13 @@ func main() {
 	flags.ParseFlags()
 	logger.InitLogger()
 	pgxConf, err := db.InitPgsql()
-	if err != nil {
+	if errors.Is(err, db.ErrConnNotFound) {
+		logger.GetSugar().Infoln("Database connection string not found, using file or memory repository")
+	} else if err != nil {
+		logger.GetSugar().Errorf("Error initializing database: %s", err.Error())
 		panic(err)
 	}
-	if pgxConf != nil {
+	if pgxConf.GetDBConn() != nil {
 		defer pgxConf.GetDBConn().Close()
 	} 
 		

@@ -12,6 +12,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var (
+	ErrConnNotFound = errors.New("Connection to database not found")
+	ErrUnableToConnect = errors.New("Unable to connect to database")
+)
+
 type PgxConf struct {
 	DB *pgxpool.Pool
 }
@@ -25,21 +30,22 @@ func (p *PgxConf) SetDBConn(conn *pgxpool.Pool) {
 }
 
 func InitPgsql() (*PgxConf, error) {
+	var pgxConf = &PgxConf{}
 	if service.GetDatabaseDSN() == "" {
-		return nil, errors.New("connection to database not found")
+		return pgxConf, ErrConnNotFound
 	}
 	conn, err := pgxpool.New(context.Background(), service.GetDatabaseDSN())
 	if err != nil {
-		return nil, err
-	}
-	var pgxConf PgxConf
-	pgxConf.SetDBConn(conn)
-	logger.GetSugar().Infoln("Connected to database successfully")
-	if err := runMigrations(); err != nil {
-		return nil, err
+		return pgxConf, ErrUnableToConnect
 	}
 	
-	return &pgxConf, nil
+	logger.GetSugar().Infoln("Connected to database successfully")
+	if err := runMigrations(); err != nil {
+		return pgxConf, err
+	}
+	
+	pgxConf.SetDBConn(conn)
+	return pgxConf, nil
 }
 
 func runMigrations() error {
