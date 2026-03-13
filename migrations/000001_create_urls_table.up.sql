@@ -1,6 +1,6 @@
 CREATE TABLE urls (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    short_url VARCHAR(10) NOT NULL,
+    short_url VARCHAR(255) NOT NULL,
     original_url VARCHAR(255) NOT NULL
 );
 

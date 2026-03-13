@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	ErrConnNotFound = errors.New("Connection to database not found")
-	ErrUnableToConnect = errors.New("Unable to connect to database")
+	ErrConnNotFound = errors.New("connection to database not found")
+	ErrUnableToConnect = errors.New("unable to connect to database")
 )
 
 type PgxConf struct {
