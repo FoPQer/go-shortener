@@ -285,3 +285,19 @@ func TestSetUrls_Overwrite(t *testing.T) {
 	_, err := repo.GetURLByShortURL("old")
 	assert.Error(t, err)
 }
+
+func TestAddBatchURL(t *testing.T) {
+	filePath := createTempFile(t)
+	repo := NewRepository(filePath)
+
+	batch := []*model.Urls{
+		{Original: "https://example1.com", ShortURL: "short1"},
+		{Original: "https://example2.com", ShortURL: "short2"},
+		{Original: "https://example3.com", ShortURL: "short3"},
+	}
+
+	result, err := repo.AddBatchURL(batch)
+	require.NoError(t, err)
+	assert.Equal(t, batch, result)
+	assert.Equal(t, 3, len(repo.GetUrls()))
+}

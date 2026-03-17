@@ -47,3 +47,8 @@ func (r *MemoryUrlsRepository) AddURL(original, shortURL string) (*model.Urls, e
 	r.urls = append(r.urls, u)
 	return u, nil
 }
+
+func (r *MemoryUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
+	r.urls = append(r.urls, batchURLs...)
+	return batchURLs, nil
+}

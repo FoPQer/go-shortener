@@ -3,10 +3,12 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -132,3 +134,41 @@ func (r *DBUrlsRepository) AddURL(original, shortURL string) (*model.Urls, error
 	return model.NewUrls(original, shortURL), nil
 }
 
+func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	results := make([]*model.Urls, 0, len(batchURLs))
+	batch := &pgx.Batch{}
+
+	query := "INSERT INTO urls (original_url, short_url) VALUES ($1, $2) ON CONFLICT (original_url) DO NOTHING"
+	for _, u := range batchURLs {
+		batch.Queue(query, u.GetOriginal(), u.GetShortURL())
+	}
+	
+	batchResults := r.conn.SendBatch(ctx, batch)
+	defer batchResults.Close()
+
+	for _, u := range batchURLs {
+		result, err := batchResults.Exec()
+		if err != nil {
+			return nil, fmt.Errorf("Unable to Exec() batch at URL %s -> %s: %w", u.GetOriginal(), u.GetShortURL(), err)
+		}
+
+		var url *model.Urls
+
+		if result.RowsAffected() == 0 {
+			url, err = r.GetURLByOriginalURL(u.GetOriginal())
+			if err != nil {
+				return nil, errors.Join(fmt.Errorf("Unable to get URL by original URL %s: %w", u.GetOriginal(), err), urls.ErrURLAlreadyExists)
+			}
+		} else {
+			url = u
+		}
+
+		results = append(results, url)
+	}
+
+	<-ctx.Done()
+	return results, nil
+}

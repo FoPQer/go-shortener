@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/service"
@@ -54,10 +55,10 @@ func runMigrations() error {
 		service.GetDatabaseDSN(),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
+		return fmt.Errorf("failed to apply migrations: %w", err)
 	}
 	return nil
 }

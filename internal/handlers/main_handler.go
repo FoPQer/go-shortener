@@ -40,7 +40,7 @@ func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while reading request body: %s", err.Error())
+		logger.GetSugar().Errorf("Error while reading request body: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -54,7 +54,7 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.WriteHeader(http.StatusConflict)
 	} else if err != nil {
-		logger.GetSugar().Errorf("Error while setting URL: %s", err.Error())
+		logger.GetSugar().Errorf("Error while setting URL: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -68,7 +68,7 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while reading request body: %s", err.Error())
+		logger.GetSugar().Errorf("Error while reading request body: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -80,7 +80,7 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 
 	url, err := h.jsonService.GetURLFromJSON(body)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while getting URL from JSON: %s", err.Error())
+		logger.GetSugar().Errorf("Error while getting URL from JSON: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -90,14 +90,14 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusConflict)
 	} else if err != nil {
-		logger.GetSugar().Errorf("Error while setting URL: %s", err.Error())
+		logger.GetSugar().Errorf("Error while setting URL: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 
 	out, err := h.jsonService.SetURLToJSON(target)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while setting URL to JSON: %s", err.Error())
+		logger.GetSugar().Errorf("Error while setting URL to JSON: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -110,7 +110,7 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while reading request body: %s", err.Error())
+		logger.GetSugar().Errorf("Error while reading request body: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -121,19 +121,19 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 	}
 	urls, err := h.jsonService.GetBatchURLFromJSON(body)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while getting batch url from JSON: %s", err.Error())
+		logger.GetSugar().Errorf("Error while getting batch url from JSON: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 	targets, err := h.urlService.SetBatchURL(urls)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while setting batch url: %s", err.Error())
+		logger.GetSugar().Errorf("Error while setting batch url: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 	out, err := h.jsonService.SetBatchURLToJSON(targets)
 	if err != nil {
-		logger.GetSugar().Errorf("Error while setting batch url to JSON: %s", err.Error())
+		logger.GetSugar().Errorf("Error while setting batch url to JSON: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}

@@ -97,3 +97,18 @@ func TestAddURL_MultipleAdd(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "https://example2.com", result)
 }
+
+func TestAddBatchURL(t *testing.T) {
+	repo := NewRepository()
+
+	batch := []*model.Urls{
+		{Original: "https://example1.com", ShortURL: "short1"},
+		{Original: "https://example2.com", ShortURL: "short2"},
+		{Original: "https://example3.com", ShortURL: "short3"},
+	}
+
+	result, err := repo.AddBatchURL(batch)
+	require.NoError(t, err)
+	assert.Equal(t, batch, result)
+	assert.Equal(t, 3, len(repo.GetUrls()))
+}

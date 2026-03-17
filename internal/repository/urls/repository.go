@@ -17,4 +17,5 @@ type Repository interface {
 	GetURLByOriginalURL(originalURL string) (*model.Urls, error)
 	GetURLByShortURL(shortURL string) (string, error)
 	AddURL(original, shortURL string) (*model.Urls, error)
+	AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error)
 }

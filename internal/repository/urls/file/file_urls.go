@@ -71,3 +71,12 @@ func (r *FileUrlsRepository) AddURL(original, shortURL string) (*model.Urls, err
 	
 	return u, nil
 }
+
+func (r *FileUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
+	urls := r.GetUrls()
+	urls = append(urls, batchURLs...)
+	utils.WriteToFile(r.filePath, urls)
+
+	return batchURLs, nil
+}
+

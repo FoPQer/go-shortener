@@ -79,6 +79,19 @@ func (r *uniqueMemoryRepository) AddURL(original, shortURL string) (*model.Urls,
 	return u, nil
 }
 
+func (r *uniqueMemoryRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
+	for _, u := range batchURLs {
+		for _, existing := range r.urls {
+			if u.GetOriginal() == existing.GetOriginal() {
+				return nil, urls.ErrURLAlreadyExists
+			}
+		}
+	}
+
+	r.urls = append(r.urls, batchURLs...)
+	return batchURLs, nil
+}
+
 func TestGetUrl(t *testing.T) {
 	initTestLogger(t)
 
