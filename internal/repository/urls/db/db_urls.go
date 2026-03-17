@@ -152,7 +152,7 @@ func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, 
 	for _, u := range batchURLs {
 		result, err := batchResults.Exec()
 		if err != nil {
-			return nil, fmt.Errorf("Unable to Exec() batch at URL %s -> %s: %w", u.GetOriginal(), u.GetShortURL(), err)
+			return nil, fmt.Errorf("unable to Exec() batch at URL %s -> %s: %w", u.GetOriginal(), u.GetShortURL(), err)
 		}
 
 		var url *model.Urls
@@ -160,7 +160,7 @@ func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, 
 		if result.RowsAffected() == 0 {
 			url, err = r.GetURLByOriginalURL(u.GetOriginal())
 			if err != nil {
-				return nil, errors.Join(fmt.Errorf("Unable to get URL by original URL %s: %w", u.GetOriginal(), err), urls.ErrURLAlreadyExists)
+				return nil, errors.Join(fmt.Errorf("unable to get URL by original URL %s: %w", u.GetOriginal(), err), urls.ErrURLAlreadyExists)
 			}
 		} else {
 			url = u

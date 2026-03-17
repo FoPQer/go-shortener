@@ -30,7 +30,7 @@ func (s *URLService) GetUrls() []*model.Urls {
 func (s *URLService) GetURL(shortURL string) (string, error) {
 	url, err := s.repo.GetURLByShortURL(shortURL)
 	if err != nil {
-		return "", fmt.Errorf("Unable to get URL: %w", err)
+		return "", fmt.Errorf("unable to get URL: %w", err)
 	}
 
 	return url, nil
@@ -42,7 +42,7 @@ func (s *URLService) SetURL(fullURL string) (string, error) {
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		short, makeErr := makeShortURL(url.GetShortURL())
 		if makeErr != nil {
-			return "", errors.Join(fmt.Errorf("Unsuccessful URL creation: %w", err), makeErr)
+			return "", errors.Join(fmt.Errorf("unsuccessful URL creation: %w", err), makeErr)
 		}
 
 		return short, urls.ErrURLAlreadyExists
@@ -57,7 +57,7 @@ func (s *URLService) SetURL(fullURL string) (string, error) {
 func (s *URLService) SetBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {	
 	result, err := s.repo.AddBatchURL(batchURLs)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to add batch URLs: %w", err)
+		return nil, fmt.Errorf("unable to add batch URLs: %w", err)
 	}
 
 	return result, nil
