@@ -2,34 +2,75 @@ package service
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"net/url"
 
-	"github.com/FoPQer/go-shortener/internal/repository"
+	"github.com/FoPQer/go-shortener/internal/logger"
+	"github.com/FoPQer/go-shortener/internal/model"
+	"github.com/FoPQer/go-shortener/internal/repository/urls"
 )
 
-func newID() string {
-	return rand.Text()[0:8]
+type URLService struct {
+	repo urls.Repository
 }
 
-func GetURL(shortURL string) (string, error) {
-	url, err := repository.GetURLByShortURL(shortURL)
+func NewURLService(repo urls.Repository) *URLService {
+	return &URLService{repo: repo}
+}
+
+func (s *URLService) SetUrls(urls []*model.Urls) {
+	s.repo.SetUrls(urls)
+}
+
+func (s *URLService) GetUrls() []*model.Urls {
+	return s.repo.GetUrls()
+}
+
+func (s *URLService) GetURL(shortURL string) (string, error) {
+	url, err := s.repo.GetURLByShortURL(shortURL)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to get URL: %w", err)
 	}
 
 	return url, nil
 }
 
-func SetURL(fullURL string) (string, error) {
-	shortURL := newID()
-	repository.AddURL(fullURL, shortURL)
-	
-	WriteToFile(GetFileStoragePath())
+func (s *URLService) SetURL(fullURL string) (string, error) {
+	id := newID()
+	url, err := s.repo.AddURL(fullURL, id)
+	if errors.Is(err, urls.ErrURLAlreadyExists) {
+		short, makeErr := makeShortURL(url.GetShortURL())
+		if makeErr != nil {
+			return "", errors.Join(fmt.Errorf("unsuccessful URL creation: %w", err), makeErr)
+		}
 
-	target, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), shortURL)
+		return short, urls.ErrURLAlreadyExists
+	} else if err != nil {
+		return "", err
+	}
+	logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL()) 
+
+	return makeShortURL(url.GetShortURL())
+}
+
+func (s *URLService) SetBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {	
+	result, err := s.repo.AddBatchURL(batchURLs)
+	if err != nil {
+		return nil, fmt.Errorf("unable to add batch URLs: %w", err)
+	}
+
+	return result, nil
+}
+
+func newID() string {
+	return rand.Text()[0:8]
+}
+
+func makeShortURL(id string) (string, error) {
+	short, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), id)
 	if err != nil {
 		return "", err
 	}
-
-	return target, nil
+	return short, nil
 }

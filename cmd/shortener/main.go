@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
+	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/logger"
-	"github.com/FoPQer/go-shortener/internal/repository"
+	"github.com/FoPQer/go-shortener/internal/repository/factory"
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -13,10 +17,33 @@ import (
 
 func main() {
 	flags.ParseFlags()
-	r := chi.NewRouter()
-	routes.InitWebRoutes(r)
-	repository.InitUrls(service.GetFileStoragePath())
 	logger.InitLogger()
+	pgxConf, err := db.InitPgsql()
+	if errors.Is(err, db.ErrConnNotFound) {
+		logger.GetSugar().Infoln("Database connection string not found, using file or memory repository")
+	} else if err != nil {
+		logger.GetSugar().Errorf("Error initializing database: %s", err.Error())
+		panic(err)
+	}
+	if pgxConf.GetDBConn() != nil {
+		defer pgxConf.GetDBConn().Close()
+	} 
+		
+    urlRepo, err := factory.
+		NewRepositoryFactory(pgxConf.GetDBConn(), service.GetFileStoragePath()).
+		CreateUrlsRepository(context.Background())
+    if err != nil {
+        panic(err)
+    }
+    
+    urlService := service.NewURLService(urlRepo)
+	jsonService := service.NewJSONService()
+
+	handler := handlers.NewHandler(urlService, jsonService)
+	dbHandler := handlers.NewDBHandler(pgxConf)
+
+	r := chi.NewRouter()
+	routes.InitWebRoutes(r, handler, dbHandler)
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)

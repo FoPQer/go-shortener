@@ -1,25 +1,14 @@
 package model
 
-import (
-	"errors"
-)
-
-var (
-	ErrBadValueReceive = errors.New("value not received")
-	ErrEmptyURLID      = errors.New("empty id to insert")
-	ErrEmptyURLURL     = errors.New("empty url to insert")
-	ErrIDAlreadyExists = errors.New("id is already exists")
-)
-
 type Urls struct {
 	Original string `json:"original_url"`
 	ShortURL string `json:"short_url"`
 }
 
-func NewUrls() *Urls {
+func NewUrls(original, shortURL string) *Urls {
 	return &Urls{
-		Original: "",
-		ShortURL: "",
+		Original: original,
+		ShortURL: shortURL,
 	}
 }
 
