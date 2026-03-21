@@ -1,0 +1,2 @@
+ALTER TABLE urls
+DROP FOREIGN KEY fk_user_id;
