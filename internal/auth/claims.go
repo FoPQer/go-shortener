@@ -12,8 +12,3 @@ func NewClaims(userID string) *Claims {
 		UserID: userID,
 	}
 }
-
-func (c *Claims) BuildJWTString(secretKey []byte) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
-	return token.SignedString(secretKey)
-}
