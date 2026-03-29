@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/user"
 )
@@ -14,10 +16,10 @@ func NewUserService(userRepo user.UserRepository) *UserService {
 	}
 }
 
-func (s *UserService) Get(id string) (*model.User, error) {
-	return s.userRepo.FindByID(id)
+func (s *UserService) Get(ctx context.Context, id string) (*model.User, error) {
+	return s.userRepo.FindByID(ctx, id)
 }
 
-func (s *UserService) Create(user *model.User) (string, error) {
-	return s.userRepo.Save(user)
+func (s *UserService) Create(ctx context.Context, user *model.User) (string, error) {
+	return s.userRepo.Save(ctx, user)
 }

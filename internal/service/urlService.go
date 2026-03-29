@@ -27,6 +27,14 @@ func (s *URLService) GetUrls() []*model.Urls {
 	return s.repo.GetUrls()
 }
 
+func (s *URLService) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
+	return s.repo.GetUrlsByUserID(userID)
+}
+
+func (s *URLService) DeleteUrlsByUserID(userID string) error {
+	return s.repo.DeleteUrlsByUserID(userID)
+}
+
 func (s *URLService) GetURL(shortURL string) (string, error) {
 	url, err := s.repo.GetURLByShortURL(shortURL)
 	if err != nil {
@@ -36,11 +44,11 @@ func (s *URLService) GetURL(shortURL string) (string, error) {
 	return url, nil
 }
 
-func (s *URLService) SetURL(fullURL string) (string, error) {
+func (s *URLService) SetURL(fullURL, userID string) (string, error) {
 	id := newID()
-	url, err := s.repo.AddURL(fullURL, id)
+	url, err := s.repo.AddURL(fullURL, id, userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
-		short, makeErr := makeShortURL(url.GetShortURL())
+		short, makeErr := MakeShortURL(url.GetShortURL())
 		if makeErr != nil {
 			return "", errors.Join(fmt.Errorf("unsuccessful URL creation: %w", err), makeErr)
 		}
@@ -51,23 +59,27 @@ func (s *URLService) SetURL(fullURL string) (string, error) {
 	}
 	logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL()) 
 
-	return makeShortURL(url.GetShortURL())
+	return MakeShortURL(url.GetShortURL())
 }
 
-func (s *URLService) SetBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {	
+func (s *URLService) SetBatchURL(batchURLs []*model.Urls, userID string) ([]*model.Urls, error) {	
+	for _, u := range batchURLs {
+		u.SetUserID(userID)
+	}
 	result, err := s.repo.AddBatchURL(batchURLs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to add batch URLs: %w", err)
 	}
 
 	return result, nil
+
 }
 
 func newID() string {
 	return rand.Text()[0:8]
 }
 
-func makeShortURL(id string) (string, error) {
+func MakeShortURL(id string) (string, error) {
 	short, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), id)
 	if err != nil {
 		return "", err

@@ -182,7 +182,7 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u, err := repo.AddURL("https://example.com", "GJFTZTEQ")
+				u, err := repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
 				require.NoError(t, err)
 				assert.NotNil(t, u)
 				assert.Equal(t, "https://example.com", u.GetOriginal())
@@ -201,9 +201,9 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				repo.AddURL("https://example1.com", "short1")
-				repo.AddURL("https://example2.com", "short2")
-				repo.AddURL("https://example3.com", "short3")
+				repo.AddURL("https://example1.com", "short1", "user1")
+				repo.AddURL("https://example2.com", "short2", "user1")
+				repo.AddURL("https://example3.com", "short3", "user1")
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
 				result := repo.GetUrls()
@@ -223,7 +223,7 @@ func TestAddURL(t *testing.T) {
 				return createTempFileWithData(t, testUrls)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u, err := repo.AddURL("https://new.com", "new")
+				u, err := repo.AddURL("https://new.com", "new", "user1")
 				require.NoError(t, err)
 				assert.NotNil(t, u)
 			},
@@ -240,7 +240,7 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				repo.AddURL("https://example.com", "GJFTZTEQ")
+				repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
 				repo2 := NewRepository(repo.filePath)

@@ -93,7 +93,7 @@ func (s *JSONService) GetUrlsFromInputBatchJSON(input []InputJSONBatchURL) ([]*m
 func (s *JSONService) GetOutputBatchJSONFromUrls(urls []*model.Urls) ([]OutputJSONBatchURL, error) {
 	output := make([]OutputJSONBatchURL, 0, len(urls))
 	for _, u := range urls {
-		short, err := makeShortURL(u.GetShortURL())
+		short, err := MakeShortURL(u.GetShortURL())
 		if err != nil {
 			return output, err
 		}

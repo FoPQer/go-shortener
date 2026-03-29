@@ -11,8 +11,8 @@ import (
 
 func TestGetUrls(t *testing.T) {
 	repo := NewRepository()
-	repo.AddURL("https://example.com", "GJFTZTEQ")
-	repo.AddURL("https://google.com", "NWEOHOB6")
+	repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
+	repo.AddURL("https://google.com", "NWEOHOB6", "user2")
 
 	result := repo.GetUrls()
 
@@ -36,8 +36,8 @@ func TestSetUrls(t *testing.T) {
 
 func TestGetURLByShortURL_Found(t *testing.T) {
 	repo := NewRepository()
-	repo.AddURL("https://example.com", "GJFTZTEQ")
-	repo.AddURL("https://google.com", "NWEOHOB6")
+	repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
+	repo.AddURL("https://google.com", "NWEOHOB6", "user2")
 
 	original, err := repo.GetURLByShortURL("GJFTZTEQ")
 
@@ -47,7 +47,7 @@ func TestGetURLByShortURL_Found(t *testing.T) {
 
 func TestGetURLByShortURL_NotFound(t *testing.T) {
 	repo := NewRepository()
-	repo.AddURL("https://example.com", "GJFTZTEQ")
+	repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
 
 	original, err := repo.GetURLByShortURL("nonexistent")
 
@@ -69,14 +69,14 @@ func TestGetURLByShortURL_EmptyURLs(t *testing.T) {
 func TestAddURL(t *testing.T) {
 	repo := NewRepository()
 
-	u, err := repo.AddURL("https://example.com", "GJFTZTEQ")
+	u, err := repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, len(repo.GetUrls()))
 	assert.Equal(t, "https://example.com", u.GetOriginal())
 	assert.Equal(t, "GJFTZTEQ", u.GetShortURL())
 
-	u2, err := repo.AddURL("https://google.com", "NWEOHOB6")
+	u2, err := repo.AddURL("https://google.com", "NWEOHOB6", "user2")
 	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(repo.GetUrls()))
@@ -87,9 +87,9 @@ func TestAddURL(t *testing.T) {
 func TestAddURL_MultipleAdd(t *testing.T) {
 	repo := NewRepository()
 
-	repo.AddURL("https://example1.com", "short1")
-	repo.AddURL("https://example2.com", "short2")
-	repo.AddURL("https://example3.com", "short3")
+	repo.AddURL("https://example1.com", "short1", "user1")
+	repo.AddURL("https://example2.com", "short2", "user1")
+	repo.AddURL("https://example3.com", "short3", "user1")
 
 	assert.Equal(t, 3, len(repo.GetUrls()))
 
@@ -102,9 +102,9 @@ func TestAddBatchURL(t *testing.T) {
 	repo := NewRepository()
 
 	batch := []*model.Urls{
-		{Original: "https://example1.com", ShortURL: "short1"},
-		{Original: "https://example2.com", ShortURL: "short2"},
-		{Original: "https://example3.com", ShortURL: "short3"},
+		{Original: "https://example1.com", ShortURL: "short1", UserID: "user1"},
+		{Original: "https://example2.com", ShortURL: "short2", UserID: "user1"},
+		{Original: "https://example3.com", ShortURL: "short3", UserID: "user1"},
 	}
 
 	result, err := repo.AddBatchURL(batch)

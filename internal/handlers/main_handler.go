@@ -1,23 +1,31 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
+	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
+type OutputUserUrlsJson struct {
+	ShortURL string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
 type Handler struct {
 	urlService *service.URLService
 	jsonService *service.JSONService
+	userService *service.UserService
 }
 
-func NewHandler(urlService *service.URLService, jsonService *service.JSONService) *Handler {
-	return &Handler{urlService: urlService, jsonService: jsonService}
+func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService) *Handler {
+	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService}
 }
 
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
@@ -50,7 +58,7 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("body: %s", string(body))
-	target, err := h.urlService.SetURL(string(body))
+	target, err := h.urlService.SetURL(string(body), req.Context().Value("userID").(string))
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.WriteHeader(http.StatusConflict)
 	} else if err != nil {
@@ -85,7 +93,7 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	target, err := h.urlService.SetURL(string(url))
+	target, err := h.urlService.SetURL(string(url), req.Context().Value("userID").(string))
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusConflict)
@@ -125,7 +133,7 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	targets, err := h.urlService.SetBatchURL(urls)
+	targets, err := h.urlService.SetBatchURL(urls, req.Context().Value("userID").(string))
 	if err != nil {
 		logger.GetSugar().Errorf("Error while setting batch url: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -140,4 +148,77 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
 	res.Write(out)
+}
+
+func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
+	userID := req.Context().Value("userID").(string)
+	if userID == "" {
+		http.Error(res, "Missing user ID", http.StatusUnauthorized)
+		return
+	}
+	logger.GetSugar().Infof("UserID: %s", userID)
+	urls, err := h.urlService.GetUrlsByUserID(userID)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while getting user URLs: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	out, err := setUserUrlsToJSON(urls)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while setting user URLs to JSON: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write(out)
+}
+
+func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
+	userID := req.Context().Value("userID").(string)
+	if userID == "" {
+		http.Error(res, "Missing user ID", http.StatusUnauthorized)
+		return
+	}
+	logger.GetSugar().Infof("UserID: %s", userID)
+	err := h.urlService.DeleteUrlsByUserID(userID)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while deleting user URLs: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusAccepted)
+}
+
+func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
+	output, err := getUrlsJSONFromUrls(input)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := json.Marshal(output)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func getUrlsJSONFromUrls(urls []*model.Urls) ([]OutputUserUrlsJson, error) {
+	output := make([]OutputUserUrlsJson, 0, len(urls))
+	for _, u := range urls {
+		short, err := service.MakeShortURL(u.GetShortURL())
+		if err != nil {
+			return output, err
+		}
+		output = append(output, OutputUserUrlsJson{
+			ShortURL:    short,
+			OriginalURL: u.GetOriginal(),
+		})
+	}
+
+	return output, nil
 }

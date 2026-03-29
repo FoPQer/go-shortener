@@ -1,15 +1,16 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/auth"
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/logger"
-	"github.com/FoPQer/go-shortener/internal/repository/factory"
+	"github.com/FoPQer/go-shortener/internal/middlewares"
+	repoFactory "github.com/FoPQer/go-shortener/internal/repository/factory"
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -28,22 +29,32 @@ func main() {
 	if pgxConf.GetDBConn() != nil {
 		defer pgxConf.GetDBConn().Close()
 	} 
+
+	factory := repoFactory.NewRepositoryFactory(pgxConf.GetDBConn(), service.GetFileStoragePath())
 		
-    urlRepo, err := factory.
-		NewRepositoryFactory(pgxConf.GetDBConn(), service.GetFileStoragePath()).
-		CreateUrlsRepository(context.Background())
+    urlRepo, err := factory.CreateUrlsRepository()
     if err != nil {
         panic(err)
     }
-    
+
+	userRepo, err := factory.CreateUserRepository()
+    if err != nil {
+        panic(err)
+    }
+
     urlService := service.NewURLService(urlRepo)
 	jsonService := service.NewJSONService()
+	userService := service.NewUserService(userRepo)
+	claimsService := auth.NewClaimsService()
 
-	handler := handlers.NewHandler(urlService, jsonService)
+	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
+
+	handler := handlers.NewHandler(urlService, jsonService, userService)
 	dbHandler := handlers.NewDBHandler(pgxConf)
 
+
 	r := chi.NewRouter()
-	routes.InitWebRoutes(r, handler, dbHandler)
+	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)

@@ -3,6 +3,7 @@ package model
 type Urls struct {
 	Original string `json:"original_url"`
 	ShortURL string `json:"short_url"`
+	UserID   string `json:"user_id,omitempty"`
 }
 
 func NewUrls(original, shortURL string) *Urls {
@@ -26,4 +27,12 @@ func (u *Urls) GetShortURL() string {
 
 func (u *Urls) SetShortURL(shortURL string) {
 	u.ShortURL = shortURL
+}
+
+func (u *Urls) GetUserID() string {
+	return u.UserID
+}
+
+func (u *Urls) SetUserID(userID string) {
+	u.UserID = userID
 }

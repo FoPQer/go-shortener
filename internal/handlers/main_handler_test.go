@@ -11,7 +11,8 @@ import (
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
-	"github.com/FoPQer/go-shortener/internal/repository/urls"
+	urlMemory "github.com/FoPQer/go-shortener/internal/repository/urls/memory"
+	userMemory "github.com/FoPQer/go-shortener/internal/repository/user/memory"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,78 +29,14 @@ func initTestLogger(t *testing.T) {
 	})
 }
 
-type uniqueMemoryRepository struct {
-	urls []*model.Urls
-}
-
-func newUniqueMemoryRepository() *uniqueMemoryRepository {
-	return &uniqueMemoryRepository{
-		urls: make([]*model.Urls, 0),
-	}
-}
-
-func (r *uniqueMemoryRepository) GetUrls() []*model.Urls {
-	return r.urls
-}
-
-func (r *uniqueMemoryRepository) SetUrls(newUrls []*model.Urls) {
-	r.urls = newUrls
-}
-
-func (r *uniqueMemoryRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
-	for _, u := range r.urls {
-		if u.GetOriginal() == originalURL {
-			return u, nil
-		}
-	}
-
-	return nil, urls.ErrBadValueReceive
-}
-
-func (r *uniqueMemoryRepository) GetURLByShortURL(shortURL string) (string, error) {
-	for _, u := range r.urls {
-		if u.GetShortURL() == shortURL {
-			return u.GetOriginal(), nil
-		}
-	}
-
-	return "", urls.ErrBadValueReceive
-}
-
-func (r *uniqueMemoryRepository) AddURL(original, shortURL string) (*model.Urls, error) {
-	for _, u := range r.urls {
-		if u.GetOriginal() == original {
-			return u, urls.ErrURLAlreadyExists
-		}
-	}
-
-	u := model.NewUrls(original, shortURL)
-	r.urls = append(r.urls, u)
-
-	return u, nil
-}
-
-func (r *uniqueMemoryRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
-	for _, u := range batchURLs {
-		for _, existing := range r.urls {
-			if u.GetOriginal() == existing.GetOriginal() {
-				return nil, urls.ErrURLAlreadyExists
-			}
-		}
-	}
-
-	r.urls = append(r.urls, batchURLs...)
-	return batchURLs, nil
-}
-
 func TestGetUrl(t *testing.T) {
 	initTestLogger(t)
 
 	type container struct {
 		URLService *service.URLService
 	}
-	cont := &container{URLService: service.NewURLService(newUniqueMemoryRepository())}
-	handler := NewHandler(cont.URLService, nil)
+	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
+	handler := NewHandler(cont.URLService, nil, nil)
 	type want struct {
 		code     int
 		location string
@@ -159,8 +96,8 @@ func TestPostUrl(t *testing.T) {
 	type container struct {
 		URLService *service.URLService
 	}
-	cont := &container{URLService: service.NewURLService(newUniqueMemoryRepository())}
-	handler := NewHandler(cont.URLService, nil)
+	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
+	handler := NewHandler(cont.URLService, nil, nil)
 	type want struct {
 		code        int
 		isEmptyBody bool
@@ -228,12 +165,14 @@ func TestPostURLByJSON(t *testing.T) {
 	type container struct {
 		URLService *service.URLService
 		JSONService *service.JSONService
+		UserService *service.UserService
 	}
 	cont := &container{
-		URLService: service.NewURLService(newUniqueMemoryRepository()),
+		URLService: service.NewURLService(urlMemory.NewRepository()),
 		JSONService: service.NewJSONService(),
+		UserService: service.NewUserService(userMemory.NewRepository()),
 	}
-	handler := NewHandler(cont.URLService, cont.JSONService)
+	handler := NewHandler(cont.URLService, cont.JSONService, cont.UserService)
 	type want struct {
 		code        int
 		contentType string

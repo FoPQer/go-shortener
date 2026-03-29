@@ -16,10 +16,18 @@ func (u *User) GetID() string {
 	return u.ID
 }
 
-func (u *User) GetUrls() []*Urls {
+func (u *User) SetID(id string) {
+	u.ID = id
+}
+
+func (u *User) GetURLs() []*Urls {
 	return u.Urls
 }
 
-func (u *User) AddUrl(url *Urls) {
+func (u *User) SetURLs(urls []*Urls) {
+	u.Urls = urls
+}
+
+func (u *User) AddURL(url *Urls) {
 	u.Urls = append(u.Urls, url)
 }
