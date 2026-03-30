@@ -120,7 +120,7 @@ func TestPostUrl(t *testing.T) {
 		{
 			name:  "existing original url",
 			urls:  model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
-			value: "https://priem.mirea.ru/lk",
+			value: "https://priem.mirea.ru",
 			want: want{
 				code:        http.StatusConflict,
 				isEmptyBody: false,

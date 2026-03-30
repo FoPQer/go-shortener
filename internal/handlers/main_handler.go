@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -58,7 +59,8 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("body: %s", string(body))
-	target, err := h.urlService.SetURL(string(body), req.Context().Value("userID").(string))
+	userID := getUserIDFromContext(req.Context())
+	target, err := h.urlService.SetURL(string(body), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.WriteHeader(http.StatusConflict)
 	} else if err != nil {
@@ -93,7 +95,8 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	target, err := h.urlService.SetURL(string(url), req.Context().Value("userID").(string))
+	userID := getUserIDFromContext(req.Context())
+	target, err := h.urlService.SetURL(string(url), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusConflict)
@@ -133,7 +136,8 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	targets, err := h.urlService.SetBatchURL(urls, req.Context().Value("userID").(string))
+	userID := getUserIDFromContext(req.Context())
+	targets, err := h.urlService.SetBatchURL(urls, userID)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while setting batch url: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -151,7 +155,7 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 }
 
 func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
-	userID := req.Context().Value("userID").(string)
+	userID := getUserIDFromContext(req.Context())
 	if userID == "" {
 		http.Error(res, "Missing user ID", http.StatusUnauthorized)
 		return
@@ -177,7 +181,7 @@ func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
-	userID := req.Context().Value("userID").(string)
+	userID := getUserIDFromContext(req.Context())
 	if userID == "" {
 		http.Error(res, "Missing user ID", http.StatusUnauthorized)
 		return
@@ -191,6 +195,16 @@ func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusAccepted)
+}
+
+func getUserIDFromContext(ctx context.Context) string {
+	var userID string
+	if ctx.Value("userID") != nil {
+		userID = ctx.Value("userID").(string)
+	} else {
+		userID = ""
+	}
+	return userID
 }
 
 func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
