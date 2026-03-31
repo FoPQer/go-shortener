@@ -43,7 +43,7 @@ func (r *FileUrlsRepository) SetUrls(newUrls []*model.Urls) {
 func (r *FileUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
 	urls := r.GetUrls()
 	for _, u := range urls {
-		if u.GetOriginal() == originalURL {
+		if u.GetOriginal() == originalURL && !u.IsDeleted() {
 			return u, nil
 		}
 	}
@@ -64,7 +64,7 @@ func (r *FileUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, erro
 
 	outUrls := make([]*model.Urls, 0)
 	for _, u := range urls {
-		if u.GetUserID() == userID {
+		if u.GetUserID() == userID && !u.IsDeleted() {
 			outUrls = append(outUrls, u)
 		}
 	}
@@ -75,7 +75,7 @@ func (r *FileUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, erro
 func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	urls := r.GetUrls()
 	for _, u := range urls {
-		if u.GetShortURL() == shortURL {
+		if u.GetShortURL() == shortURL && !u.IsDeleted() {
 			if u.IsDeleted() {
 				return "", repository.ErrURLDeleted
 			}
@@ -88,7 +88,7 @@ func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 func (r *FileUrlsRepository) AddURL(original, shortURL string, userID string) (*model.Urls, error) {
 	urls := r.GetUrls()
 	for _, u := range urls {
-		if u.GetOriginal() == original {
+		if u.GetOriginal() == original && !u.IsDeleted() && u.GetUserID() == userID {
 			return u, repository.ErrURLAlreadyExists
 		}
 	}

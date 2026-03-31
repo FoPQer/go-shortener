@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sync"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
@@ -32,7 +33,50 @@ func (s *URLService) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
 }
 
 func (s *URLService) DeleteUrls(shortUrls []string, userID string) error {
-	return s.repo.DeleteUrls(shortUrls, userID)
+	if len(shortUrls) == 0 {
+		return nil
+	}
+
+	numWorkers := min(len(shortUrls), 4)
+
+	urlChan := make(chan string, len(shortUrls))
+	errChan := make(chan error, numWorkers)
+
+	go func() {
+		for _, url := range shortUrls {
+			urlChan <- url
+		}
+		close(urlChan)
+	}()
+
+	var wg sync.WaitGroup
+	for range numWorkers {
+		wg.Go(func() {
+			for shortURL := range urlChan {
+				// Удаляем по одному URL'у
+				err := s.repo.DeleteUrls([]string{shortURL}, userID)
+				if err != nil {
+					errChan <- err
+				}
+			}
+		})
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	var errs []error
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors while deleting URLs: %v", errs)
+	}
+
+	return nil
 }
 
 func (s *URLService) GetURL(shortURL string) (string, error) {

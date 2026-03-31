@@ -29,7 +29,7 @@ func (r *MemoryUrlsRepository) SetUrls(newUrls []*model.Urls) {
 func (r *MemoryUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
 	outUrls := make([]*model.Urls, 0)
 	for _, u := range r.urls {
-		if u.GetUserID() == userID {
+		if u.GetUserID() == userID && !u.IsDeleted() {
 			outUrls = append(outUrls, u)
 		}
 	}
@@ -39,6 +39,9 @@ func (r *MemoryUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, er
 func (r *MemoryUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
 	for _, u := range r.urls {
 		if u.GetOriginal() == originalURL {
+			if u.IsDeleted() {
+				return nil, urls.ErrURLDeleted
+			}
 			return u, nil
 		}
 	}

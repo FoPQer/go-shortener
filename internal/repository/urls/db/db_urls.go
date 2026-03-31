@@ -77,7 +77,7 @@ func (r *DBUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error)
 
 	rows, err := r.conn.Query(
 		ctx, 
-		"SELECT original_url, short_url FROM urls WHERE user_id = $1",
+		"SELECT original_url, short_url FROM urls WHERE user_id = $1 AND is_deleted = FALSE",
 		userID,
 	)
 	if err != nil {
@@ -107,7 +107,7 @@ func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls,
 
 	err := r.conn.QueryRow(
 		ctx, 
-		"SELECT short_url FROM urls WHERE original_url = $1", 
+		"SELECT short_url FROM urls WHERE original_url = $1 AND is_deleted = FALSE", 
 		originalURL,
 	).Scan(&short)
 	if errors.Is(err, pgx.ErrNoRows) {
