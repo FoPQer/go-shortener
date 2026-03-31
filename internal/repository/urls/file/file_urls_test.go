@@ -243,7 +243,7 @@ func TestAddURL(t *testing.T) {
 				return createTempFileWithData(t, testUrls)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u, err := repo.AddURL("https://existing.com", "new-short", "user2")
+				u, err := repo.AddURL("https://existing.com", "new-short", "user1")
 				require.Error(t, err)
 				require.ErrorIs(t, err, urls.ErrURLAlreadyExists)
 				assert.NotNil(t, u)
