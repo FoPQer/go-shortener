@@ -34,7 +34,7 @@ func (r *MemoryUserRepository) Save(ctx context.Context, user *model.User) (stri
 	}
 	for _, u := range r.users {
 		if u.GetID() == user.GetID() {
-			return "", fmt.Errorf("Error while saving new user: %w", repo.ErrUserAlreadyExists)
+			return "", fmt.Errorf("error while saving new user: %w", repo.ErrUserAlreadyExists)
 		}
 	}
 	

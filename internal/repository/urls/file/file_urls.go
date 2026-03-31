@@ -62,14 +62,14 @@ func (r *FileUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, erro
 		return make([]*model.Urls, 0), err
 	}
 
-	out_urls := make([]*model.Urls, 0)
+	outUrls := make([]*model.Urls, 0)
 	for _, u := range urls {
 		if u.GetUserID() == userID {
-			out_urls = append(out_urls, u)
+			outUrls = append(outUrls, u)
 		}
 	}
 
-	return out_urls, nil
+	return outUrls, nil
 }
 
 func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {

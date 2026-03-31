@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type OutputUserUrlsJson struct {
+type OutputUserUrlsJSON struct {
 	ShortURL string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
@@ -199,7 +199,7 @@ func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 	}
 	logger.GetSugar().Infof("UserID: %s", userID)
 
-	shortUrls, err := getUrlsFromJson(req.Body)
+	shortUrls, err := getUrlsFromJSON(req.Body)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while getting URLs from JSON: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -240,14 +240,14 @@ func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
 	return result, nil
 }
 
-func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJson, error) {
-	output := make([]OutputUserUrlsJson, 0, len(urls))
+func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJSON, error) {
+	output := make([]OutputUserUrlsJSON, 0, len(urls))
 	for _, u := range urls {
 		short, err := service.MakeShortURL(u.GetShortURL())
 		if err != nil {
 			return output, err
 		}
-		output = append(output, OutputUserUrlsJson{
+		output = append(output, OutputUserUrlsJSON{
 			ShortURL:    short,
 			OriginalURL: u.GetOriginal(),
 		})
@@ -256,7 +256,7 @@ func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJson, error) 
 	return output, nil
 }
 
-func getUrlsFromJson(body io.ReadCloser) ([]string, error) {
+func getUrlsFromJSON(body io.ReadCloser) ([]string, error) {
 	var input []string
 	err := json.NewDecoder(body).Decode(&input)
 	if err != nil {

@@ -27,13 +27,13 @@ func (r *MemoryUrlsRepository) SetUrls(newUrls []*model.Urls) {
 }
 
 func (r *MemoryUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
-	out_urls := make([]*model.Urls, 0)
+	outUrls := make([]*model.Urls, 0)
 	for _, u := range r.urls {
 		if u.GetUserID() == userID {
-			out_urls = append(out_urls, u)
+			outUrls = append(outUrls, u)
 		}
 	}
-	return out_urls, fmt.Errorf("%w: %s", urls.ErrURLNotFound, userID)
+	return outUrls, fmt.Errorf("%w: %s", urls.ErrURLNotFound, userID)
 }
 
 func (r *MemoryUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
