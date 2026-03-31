@@ -98,22 +98,6 @@ func (r *DBUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error)
 	<-ctx.Done()
 	return urls, nil
 }
-func (r *DBUrlsRepository) DeleteUrlsByUserID(userID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-
-	_, err := r.conn.Exec(
-		ctx, 
-		"DELETE FROM urls WHERE user_id = $1",
-		userID,
-	)
-	if err != nil {
-		return err
-	}
-
-	<-ctx.Done()
-	return nil
-}
 
 func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
 	var short string
@@ -126,8 +110,10 @@ func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls,
 		"SELECT short_url FROM urls WHERE original_url = $1", 
 		originalURL,
 	).Scan(&short)
-	if err != nil {
-		return nil, err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrUrlNotFound)
+	} else if err != nil {
+		return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrBadValueReceive)
 	}
 	
 	<-ctx.Done()
@@ -146,8 +132,10 @@ func (r *DBUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 		"SELECT original_url FROM urls WHERE short_url = $1", 
 		shortURL,
 	).Scan(&original)
-	if err != nil {
-		return "", err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrUrlNotFound)
+	} else if err != nil {
+		return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrBadValueReceive)
 	}
 	
 	<-ctx.Done()
@@ -220,4 +208,21 @@ func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, 
 
 	<-ctx.Done()
 	return results, nil
+}
+
+func (r *DBUrlsRepository) DeleteUrlsByUserID(userID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	_, err := r.conn.Exec(
+		ctx, 
+		"DELETE FROM urls WHERE user_id = $1",
+		userID,
+	)
+	if err != nil {
+		return err
+	}
+
+	<-ctx.Done()
+	return nil
 }

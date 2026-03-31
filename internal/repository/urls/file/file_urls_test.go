@@ -235,6 +235,29 @@ func TestAddURL(t *testing.T) {
 			},
 		},
 		{
+			name: "Return existing URL for duplicate original",
+			setup: func(t *testing.T) string {
+				testUrls := []*model.Urls{
+					{Original: "https://existing.com", ShortURL: "existing-short", UserID: "user1"},
+				}
+				return createTempFileWithData(t, testUrls)
+			},
+			actions: func(t *testing.T, repo *FileUrlsRepository) {
+				u, err := repo.AddURL("https://existing.com", "new-short", "user2")
+				require.Error(t, err)
+				require.ErrorIs(t, err, urls.ErrURLAlreadyExists)
+				assert.NotNil(t, u)
+				assert.Equal(t, "existing-short", u.GetShortURL())
+				assert.Equal(t, "https://existing.com", u.GetOriginal())
+			},
+			validate: func(t *testing.T, repo *FileUrlsRepository) {
+				result := repo.GetUrls()
+				assert.Equal(t, 1, len(result))
+				assert.Equal(t, "https://existing.com", result[0].GetOriginal())
+				assert.Equal(t, "existing-short", result[0].GetShortURL())
+			},
+		},
+		{
 			name: "Persistence",
 			setup: func(t *testing.T) string {
 				return createTempFile(t)

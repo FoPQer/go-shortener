@@ -30,15 +30,16 @@ func NewHandler(urlService *service.URLService, jsonService *service.JSONService
 }
 
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
-	id := chi.URLParam(req, "id")
-	if id == "" {
+	shortURL := chi.URLParam(req, "id")
+	if shortURL == "" {
 		logger.GetSugar().Errorln("Error while getting by shortUrl: empty id")
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 
-	url, err := h.urlService.GetURL(id)
+	url, err := h.urlService.GetURL(shortURL)
 	if err != nil {
+		logger.GetSugar().Errorf("Error while getting from urlService by shortUrl: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -59,6 +60,7 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("body: %s", string(body))
+
 	userID := getUserIDFromContext(req.Context())
 	target, err := h.urlService.SetURL(string(body), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {

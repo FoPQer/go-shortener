@@ -47,7 +47,7 @@ func (r *FileUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Url
 			return u, nil
 		}
 	}
-	return nil, fmt.Errorf("%w: %s", repository.ErrBadValueReceive, originalURL)
+	return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, repository.ErrUrlNotFound)
 }
 
 func (r *FileUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
@@ -72,6 +72,42 @@ func (r *FileUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, erro
 	return out_urls, nil
 }
 
+func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
+	urls := r.GetUrls()
+	for _, u := range urls {
+		if u.GetShortURL() == shortURL {
+			return u.GetOriginal(), nil
+		}
+	}
+	return "", fmt.Errorf("error find by short URL %s: %w", shortURL, repository.ErrUrlNotFound)
+}
+
+func (r *FileUrlsRepository) AddURL(original, shortURL, userID string) (*model.Urls, error) {
+	urls := r.GetUrls()
+	for _, u := range urls {
+		if u.GetOriginal() == original {
+			return u, repository.ErrURLAlreadyExists
+		}
+	}
+	
+	u := model.NewUrls(original, shortURL)
+	u.SetUserID(userID)
+	
+	urls = append(urls, u)
+	
+	utils.WriteToFile(r.filePath, urls)
+	
+	return u, nil
+}
+
+func (r *FileUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
+	urls := r.GetUrls()
+	urls = append(urls, batchURLs...)
+	utils.WriteToFile(r.filePath, urls)
+
+	return batchURLs, nil
+}
+
 func (r *FileUrlsRepository) DeleteUrlsByUserID(userID string) error {
 	data, err := os.ReadFile(r.filePath)
 	if err != nil {
@@ -92,35 +128,3 @@ func (r *FileUrlsRepository) DeleteUrlsByUserID(userID string) error {
 
 	return nil
 }
-
-func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
-	urls := r.GetUrls()
-	for _, u := range urls {
-		if u.GetShortURL() == shortURL {
-			return u.GetOriginal(), nil
-		}
-	}
-	return "", fmt.Errorf("%w: %s", repository.ErrBadValueReceive, shortURL)
-}
-
-func (r *FileUrlsRepository) AddURL(original, shortURL, userID string) (*model.Urls, error) {
-	urls := r.GetUrls()
-	
-	u := model.NewUrls(original, shortURL)
-	u.SetUserID(userID)
-	
-	urls = append(urls, u)
-	
-	utils.WriteToFile(r.filePath, urls)
-	
-	return u, nil
-}
-
-func (r *FileUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
-	urls := r.GetUrls()
-	urls = append(urls, batchURLs...)
-	utils.WriteToFile(r.filePath, urls)
-
-	return batchURLs, nil
-}
-

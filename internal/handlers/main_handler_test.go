@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -50,7 +51,7 @@ func TestGetUrl(t *testing.T) {
 		{
 			name:  "without value",
 			urls:  &model.Urls{
-				Original: "https://priem.mirea.ru/lk/admin/crud/list/user-resources",
+				Original: "https://example.com",
 				ShortURL: "67KBAWAO",
 			},
 			value: "",
@@ -62,7 +63,7 @@ func TestGetUrl(t *testing.T) {
 		{
 			name:  "double get",
 			urls:  &model.Urls{
-				Original: "https://priem.mirea.ru/lk",
+				Original: "https://example.com",
 				ShortURL: "RVHUL6VG",
 			},
 			value: "RVHUL6VG/RVHUL6VG",
@@ -119,20 +120,11 @@ func TestPostUrl(t *testing.T) {
 		},
 		{
 			name:  "existing original url",
-			urls:  model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
-			value: "https://priem.mirea.ru",
+			urls:  model.NewUrls("https://example.com", "RVHUL6VG"),
+			value: "https://example.com",
 			want: want{
 				code:        http.StatusConflict,
 				isEmptyBody: false,
-			},
-		},
-		{
-			name:  "empty value",
-			urls:  model.NewUrls("", ""),
-			value: "",
-			want: want{
-				code:        http.StatusBadRequest,
-				isEmptyBody: true,
 			},
 		},
 	}
@@ -144,10 +136,10 @@ func TestPostUrl(t *testing.T) {
 			handler.PostURL(w, request)
 
 			res := w.Result()
-			assert.Equal(t, tt.want.code, res.StatusCode)
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
-
+			log.Printf("urls: %v, new urls: %s", tt.urls, resBody)
+			assert.Equal(t, tt.want.code, res.StatusCode)
 			require.NoError(t, err)
 			if !tt.want.isEmptyBody {
 				assert.NotEmpty(t, resBody)

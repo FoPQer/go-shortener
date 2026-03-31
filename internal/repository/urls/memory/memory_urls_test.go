@@ -98,6 +98,23 @@ func TestAddURL_MultipleAdd(t *testing.T) {
 	assert.Equal(t, "https://example2.com", result)
 }
 
+func TestAddURL_DuplicateOriginalReturnsExisting(t *testing.T) {
+	repo := NewRepository()
+
+	first, err := repo.AddURL("https://example.com", "old-short", "user1")
+	require.NoError(t, err)
+	require.NotNil(t, first)
+
+	second, err := repo.AddURL("https://example.com", "new-short", "user2")
+	require.Error(t, err)
+	require.ErrorIs(t, err, urls.ErrURLAlreadyExists)
+	require.NotNil(t, second)
+
+	assert.Equal(t, "old-short", second.GetShortURL())
+	assert.Equal(t, "https://example.com", second.GetOriginal())
+	assert.Equal(t, 1, len(repo.GetUrls()))
+}
+
 func TestAddBatchURL(t *testing.T) {
 	repo := NewRepository()
 

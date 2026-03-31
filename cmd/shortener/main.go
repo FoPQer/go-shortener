@@ -50,7 +50,7 @@ func main() {
 	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
 
 	handler := handlers.NewHandler(urlService, jsonService, userService)
-	dbHandler := handlers.NewDBHandler(pgxConf)
+	dbHandler := handlers.NewDBHandler(pgxConf.GetDBConn())
 
 
 	r := chi.NewRouter()
