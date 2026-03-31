@@ -138,7 +138,7 @@ func TestGetURLByShortURL(t *testing.T) {
 			},
 			shortURL:      "nonexistent",
 			expectedURL:   "",
-			expectedError: urls.ErrBadValueReceive,
+			expectedError: urls.ErrURLNotFound,
 		},
 		{
 			name: "Empty file",
@@ -147,7 +147,7 @@ func TestGetURLByShortURL(t *testing.T) {
 			},
 			shortURL:      "any",
 			expectedURL:   "",
-			expectedError: urls.ErrBadValueReceive,
+			expectedError: urls.ErrURLNotFound,
 		},
 	}
 

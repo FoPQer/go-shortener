@@ -47,7 +47,7 @@ func (r *FileUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Url
 			return u, nil
 		}
 	}
-	return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, repository.ErrUrlNotFound)
+	return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, repository.ErrURLNotFound)
 }
 
 func (r *FileUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
@@ -76,13 +76,16 @@ func (r *FileUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	urls := r.GetUrls()
 	for _, u := range urls {
 		if u.GetShortURL() == shortURL {
+			if u.IsDeleted() {
+				return "", repository.ErrURLDeleted
+			}
 			return u.GetOriginal(), nil
 		}
 	}
-	return "", fmt.Errorf("error find by short URL %s: %w", shortURL, repository.ErrUrlNotFound)
+	return "", fmt.Errorf("error find by short URL %s: %w", shortURL, repository.ErrURLNotFound)
 }
 
-func (r *FileUrlsRepository) AddURL(original, shortURL, userID string) (*model.Urls, error) {
+func (r *FileUrlsRepository) AddURL(original, shortURL string, userID string) (*model.Urls, error) {
 	urls := r.GetUrls()
 	for _, u := range urls {
 		if u.GetOriginal() == original {
@@ -108,7 +111,7 @@ func (r *FileUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls
 	return batchURLs, nil
 }
 
-func (r *FileUrlsRepository) DeleteUrlsByUserID(userID string) error {
+func (r *FileUrlsRepository) DeleteUrls(shortUrls []string, userID string) error {
 	data, err := os.ReadFile(r.filePath)
 	if err != nil {
 		return err
@@ -120,11 +123,13 @@ func (r *FileUrlsRepository) DeleteUrlsByUserID(userID string) error {
 		return err
 	}
 
-	for i, u := range urls {
-		if u.GetUserID() == userID {
-			urls = slices.Delete(urls, i, i+1)
+	for _, u := range urls {
+		if slices.Contains(shortUrls, u.GetShortURL()) && u.GetUserID() == userID {
+			u.SetDeleted(true)
 		}
 	}
+
+	utils.WriteToFile(r.filePath, urls)
 
 	return nil
 }

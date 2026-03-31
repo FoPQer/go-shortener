@@ -10,6 +10,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/auth"
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/service"
+	"github.com/FoPQer/go-shortener/internal/utils"
 )
 
 const secretKey string = "your_secret_key"
@@ -60,7 +61,8 @@ func (m *AuthMiddleware) WithAuth(next http.Handler) http.Handler {
 		}
 		log.Printf("UserID: %s", userID)
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, "userID", userID)
+		k := utils.UserID("userID")
+		ctx = context.WithValue(ctx, k, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

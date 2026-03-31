@@ -31,20 +31,24 @@ func (s *URLService) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
 	return s.repo.GetUrlsByUserID(userID)
 }
 
-func (s *URLService) DeleteUrlsByUserID(userID string) error {
-	return s.repo.DeleteUrlsByUserID(userID)
+func (s *URLService) DeleteUrls(shortUrls []string, userID string) error {
+	return s.repo.DeleteUrls(shortUrls, userID)
 }
 
 func (s *URLService) GetURL(shortURL string) (string, error) {
 	url, err := s.repo.GetURLByShortURL(shortURL)
-	if err != nil {
+	if errors.Is(err, urls.ErrURLNotFound) {
+		return "", fmt.Errorf("URL not found: %w", err)
+	} else if errors.Is(err, urls.ErrURLDeleted) {
+		return "", fmt.Errorf("URL is deleted: %w", err)
+	} else if err != nil {
 		return "", fmt.Errorf("unable to get URL: %w", err)
 	}
 
 	return url, nil
 }
 
-func (s *URLService) SetURL(fullURL, userID string) (string, error) {
+func (s *URLService) SetURL(fullURL string, userID string) (string, error) {
 	id := newID()
 	url, err := s.repo.AddURL(fullURL, id, userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
@@ -55,7 +59,7 @@ func (s *URLService) SetURL(fullURL, userID string) (string, error) {
 
 		return short, urls.ErrURLAlreadyExists
 	} else if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to add URL: %w", err)
 	}
 	logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL()) 
 
@@ -64,7 +68,7 @@ func (s *URLService) SetURL(fullURL, userID string) (string, error) {
 
 func (s *URLService) SetBatchURL(batchURLs []*model.Urls, userID string) ([]*model.Urls, error) {	
 	for _, u := range batchURLs {
-		u.SetUserID(userID)
+		u.SetUserID(string(userID))
 	}
 	result, err := s.repo.AddBatchURL(batchURLs)
 	if err != nil {

@@ -111,7 +111,7 @@ func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls,
 		originalURL,
 	).Scan(&short)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrUrlNotFound)
+		return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrURLNotFound)
 	} else if err != nil {
 		return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrBadValueReceive)
 	}
@@ -123,26 +123,30 @@ func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls,
 
 func (r *DBUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	var original string
+	var isDeleted bool
 	
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
 	err := r.conn.QueryRow(
 		ctx, 
-		"SELECT original_url FROM urls WHERE short_url = $1", 
+		"SELECT original_url, is_deleted FROM urls WHERE short_url = $1", 
 		shortURL,
-	).Scan(&original)
+	).Scan(&original, &isDeleted)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrUrlNotFound)
+		return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrURLNotFound)
 	} else if err != nil {
 		return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrBadValueReceive)
 	}
 	
 	<-ctx.Done()
+	if isDeleted {
+		return "", urls.ErrURLDeleted
+	}
 	return original, nil
 }
 
-func (r *DBUrlsRepository) AddURL(original, shortURL, userID string) (*model.Urls, error) {
+func (r *DBUrlsRepository) AddURL(original, shortURL string, userID string) (*model.Urls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
@@ -210,17 +214,20 @@ func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, 
 	return results, nil
 }
 
-func (r *DBUrlsRepository) DeleteUrlsByUserID(userID string) error {
+func (r *DBUrlsRepository) DeleteUrls(shortUrls []string, userID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
 	_, err := r.conn.Exec(
 		ctx, 
-		"DELETE FROM urls WHERE user_id = $1",
+		"UPDATE urls SET is_deleted = TRUE WHERE short_url = ANY($1) AND user_id = $2",
+		shortUrls,
 		userID,
 	)
-	if err != nil {
-		return err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("error deleting URLs: %v for user %s: %w", shortUrls, userID, urls.ErrURLNotFound)
+	} else if err != nil {
+		return fmt.Errorf("error while deleting urls: %v: %w", shortUrls, err)
 	}
 
 	<-ctx.Done()

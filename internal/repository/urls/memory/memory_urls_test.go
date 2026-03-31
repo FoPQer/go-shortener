@@ -52,7 +52,7 @@ func TestGetURLByShortURL_NotFound(t *testing.T) {
 	original, err := repo.GetURLByShortURL("nonexistent")
 
 	assert.Error(t, err)
-	assert.Equal(t, urls.ErrBadValueReceive, err)
+	assert.ErrorIs(t, err, urls.ErrURLNotFound)
 	assert.Equal(t, "", original)
 }
 
@@ -62,7 +62,7 @@ func TestGetURLByShortURL_EmptyURLs(t *testing.T) {
 	original, err := repo.GetURLByShortURL("any")
 
 	assert.Error(t, err)
-	assert.Equal(t, urls.ErrBadValueReceive, err)
+	assert.ErrorIs(t, err, urls.ErrURLNotFound)
 	assert.Equal(t, "", original)
 }
 

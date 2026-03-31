@@ -11,6 +11,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/FoPQer/go-shortener/internal/service"
+	"github.com/FoPQer/go-shortener/internal/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -38,7 +39,15 @@ func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 	}
 
 	url, err := h.urlService.GetURL(shortURL)
-	if err != nil {
+	if errors.Is(err, urls.ErrURLNotFound) {
+		logger.GetSugar().Errorf("URL not found for shortUrl: %s", shortURL)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	} else if errors.Is(err, urls.ErrURLDeleted) {
+		logger.GetSugar().Errorf("URL deleted for shortUrl: %s", shortURL)
+		http.Error(res, "", http.StatusGone)
+		return
+	} else if err != nil {
 		logger.GetSugar().Errorf("Error while getting from urlService by shortUrl: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
@@ -189,7 +198,15 @@ func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("UserID: %s", userID)
-	err := h.urlService.DeleteUrlsByUserID(userID)
+
+	shortUrls, err := getUrlsFromJson(req.Body)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while getting URLs from JSON: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	err = h.urlService.DeleteUrls(shortUrls, userID)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while deleting user URLs: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -201,8 +218,8 @@ func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 
 func getUserIDFromContext(ctx context.Context) string {
 	var userID string
-	if ctx.Value("userID") != nil {
-		userID = ctx.Value("userID").(string)
+	if ctx.Value(utils.UserID("userID")) != nil {
+		userID = ctx.Value(utils.UserID("userID")).(string)
 	} else {
 		userID = ""
 	}
@@ -210,7 +227,7 @@ func getUserIDFromContext(ctx context.Context) string {
 }
 
 func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
-	output, err := getUrlsJSONFromUrls(input)
+	output, err := getUrlsJSONFromUrlsSlice(input)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +240,7 @@ func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
 	return result, nil
 }
 
-func getUrlsJSONFromUrls(urls []*model.Urls) ([]OutputUserUrlsJson, error) {
+func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJson, error) {
 	output := make([]OutputUserUrlsJson, 0, len(urls))
 	for _, u := range urls {
 		short, err := service.MakeShortURL(u.GetShortURL())
@@ -238,3 +255,14 @@ func getUrlsJSONFromUrls(urls []*model.Urls) ([]OutputUserUrlsJson, error) {
 
 	return output, nil
 }
+
+func getUrlsFromJson(body io.ReadCloser) ([]string, error) {
+	var input []string
+	err := json.NewDecoder(body).Decode(&input)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while decoding JSON: %w", err)
+		return nil, err
+	}
+	return input, nil
+}
+
