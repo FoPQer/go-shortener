@@ -178,6 +178,11 @@ func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
+	if len(urls) == 0 {
+		logger.GetSugar().Infof("No URLs found for user ID: %s", userID)
+		res.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	out, err := setUserUrlsToJSON(urls)
 	if err != nil {
