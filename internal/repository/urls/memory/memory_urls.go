@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -18,15 +19,15 @@ func NewRepository() *MemoryUrlsRepository {
 	}
 }
 
-func (r *MemoryUrlsRepository) GetUrls() []*model.Urls {
+func (r *MemoryUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	return r.urls
 }
 
-func (r *MemoryUrlsRepository) SetUrls(newUrls []*model.Urls) {
+func (r *MemoryUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	r.urls = newUrls
 }
 
-func (r *MemoryUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
+func (r *MemoryUrlsRepository) GetUrlsByUserID(ctx context.Context, userID string) ([]*model.Urls, error) {
 	outUrls := make([]*model.Urls, 0)
 	for _, u := range r.urls {
 		if u.GetUserID() == userID && !u.IsDeleted() {
@@ -36,7 +37,7 @@ func (r *MemoryUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, er
 	return outUrls, fmt.Errorf("%w: %s", urls.ErrURLNotFound, userID)
 }
 
-func (r *MemoryUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
+func (r *MemoryUrlsRepository) GetURLByOriginalURL(ctx context.Context, originalURL string) (*model.Urls, error) {
 	for _, u := range r.urls {
 		if u.GetOriginal() == originalURL {
 			if u.IsDeleted() {
@@ -48,7 +49,7 @@ func (r *MemoryUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.U
 	return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrURLNotFound)
 }
 
-func (r *MemoryUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
+func (r *MemoryUrlsRepository) GetURLByShortURL(ctx context.Context, shortURL string) (string, error) {
 	for _, u := range r.urls {
 		if u.GetShortURL() == shortURL {
 			if u.IsDeleted() {
@@ -60,7 +61,7 @@ func (r *MemoryUrlsRepository) GetURLByShortURL(shortURL string) (string, error)
 	return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrURLNotFound)
 }
 
-func (r *MemoryUrlsRepository) AddURL(original, shortURL string, userID string) (*model.Urls, error) {
+func (r *MemoryUrlsRepository) AddURL(ctx context.Context, original, shortURL string, userID string) (*model.Urls, error) {
 	for _, u := range r.urls {
 		if u.GetOriginal() == original {
 			return u, urls.ErrURLAlreadyExists
@@ -73,12 +74,12 @@ func (r *MemoryUrlsRepository) AddURL(original, shortURL string, userID string) 
 	return u, nil
 }
 
-func (r *MemoryUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
+func (r *MemoryUrlsRepository) AddBatchURL(ctx context.Context, batchURLs []*model.Urls) ([]*model.Urls, error) {
 	r.urls = append(r.urls, batchURLs...)
 	return batchURLs, nil
 }
 
-func (r *MemoryUrlsRepository) DeleteUrls(shortUrls []string, userID string) error {
+func (r *MemoryUrlsRepository) DeleteUrls(ctx context.Context, shortUrls []string, userID string) error {
 	for _, u := range r.urls {
 		if slices.Contains(shortUrls, u.GetShortURL()) && u.GetUserID() == userID {
 			u.SetDeleted(true)

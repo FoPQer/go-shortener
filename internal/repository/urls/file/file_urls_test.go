@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ func TestGetUrls_EmptyFile(t *testing.T) {
 	filePath := createTempFile(t)
 	repo := NewRepository(filePath)
 
-	result := repo.GetUrls()
+	result := repo.GetUrls(context.Background())
 
 	assert.NotNil(t, result)
 	assert.Equal(t, 0, len(result))
@@ -44,7 +45,7 @@ func TestGetUrls_ValidData(t *testing.T) {
 	filePath := createTempFileWithData(t, testUrls)
 	repo := NewRepository(filePath)
 
-	result := repo.GetUrls()
+	result := repo.GetUrls(context.Background())
 
 	assert.Equal(t, 2, len(result))
 	assert.Equal(t, "https://example.com", result[0].GetOriginal())
@@ -60,7 +61,7 @@ func TestGetUrls_InvalidJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	repo := NewRepository(filePath)
-	result := repo.GetUrls()
+	result := repo.GetUrls(context.Background())
 
 	assert.NotNil(t, result)
 	assert.Equal(t, 0, len(result))
@@ -92,9 +93,9 @@ func TestSetUrls(t *testing.T) {
 			filePath := createTempFile(t)
 			repo := NewRepository(filePath)
 
-			repo.SetUrls(tt.urls)
+			repo.SetUrls(context.Background(), tt.urls)
 
-			result := repo.GetUrls()
+			result := repo.GetUrls(context.Background())
 			assert.Equal(t, tt.expected, len(result))
 
 			if tt.expected > 0 {
@@ -156,7 +157,7 @@ func TestGetURLByShortURL(t *testing.T) {
 			filePath := tt.setup(t)
 			repo := NewRepository(filePath)
 
-			original, err := repo.GetURLByShortURL(tt.shortURL)
+			original, err := repo.GetURLByShortURL(context.Background(), tt.shortURL)
 
 			if tt.expectedError != nil {
 				assert.Error(t, err)
@@ -182,14 +183,14 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u, err := repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
+				u, err := repo.AddURL(context.Background(), "https://example.com", "GJFTZTEQ", "user1")
 				require.NoError(t, err)
 				assert.NotNil(t, u)
 				assert.Equal(t, "https://example.com", u.GetOriginal())
 				assert.Equal(t, "GJFTZTEQ", u.GetShortURL())
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
-				result := repo.GetUrls()
+				result := repo.GetUrls(context.Background())
 				assert.Equal(t, 1, len(result))
 				assert.Equal(t, "https://example.com", result[0].GetOriginal())
 				assert.Equal(t, "GJFTZTEQ", result[0].GetShortURL())
@@ -201,15 +202,15 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				repo.AddURL("https://example1.com", "short1", "user1")
-				repo.AddURL("https://example2.com", "short2", "user1")
-				repo.AddURL("https://example3.com", "short3", "user1")
+				repo.AddURL(context.Background(), "https://example1.com", "short1", "user1")
+				repo.AddURL(context.Background(), "https://example2.com", "short2", "user1")
+				repo.AddURL(context.Background(), "https://example3.com", "short3", "user1")
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
-				result := repo.GetUrls()
+				result := repo.GetUrls(context.Background())
 				assert.Equal(t, 3, len(result))
 				
-				original, err := repo.GetURLByShortURL("short2")
+				original, err := repo.GetURLByShortURL(context.Background(), "short2")
 				require.NoError(t, err)
 				assert.Equal(t, "https://example2.com", original)
 			},
@@ -223,12 +224,12 @@ func TestAddURL(t *testing.T) {
 				return createTempFileWithData(t, testUrls)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u, err := repo.AddURL("https://new.com", "new", "user1")
+				u, err := repo.AddURL(context.Background(), "https://new.com", "new", "user1")
 				require.NoError(t, err)
 				assert.NotNil(t, u)
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
-				result := repo.GetUrls()
+				result := repo.GetUrls(context.Background())
 				assert.Equal(t, 2, len(result))
 				assert.Equal(t, "https://existing.com", result[0].GetOriginal())
 				assert.Equal(t, "https://new.com", result[1].GetOriginal())
@@ -243,7 +244,7 @@ func TestAddURL(t *testing.T) {
 				return createTempFileWithData(t, testUrls)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				u, err := repo.AddURL("https://existing.com", "new-short", "user1")
+				u, err := repo.AddURL(context.Background(), "https://existing.com", "new-short", "user1")
 				require.Error(t, err)
 				require.ErrorIs(t, err, urls.ErrURLAlreadyExists)
 				assert.NotNil(t, u)
@@ -251,7 +252,7 @@ func TestAddURL(t *testing.T) {
 				assert.Equal(t, "https://existing.com", u.GetOriginal())
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
-				result := repo.GetUrls()
+				result := repo.GetUrls(context.Background())
 				assert.Equal(t, 1, len(result))
 				assert.Equal(t, "https://existing.com", result[0].GetOriginal())
 				assert.Equal(t, "existing-short", result[0].GetShortURL())
@@ -263,11 +264,11 @@ func TestAddURL(t *testing.T) {
 				return createTempFile(t)
 			},
 			actions: func(t *testing.T, repo *FileUrlsRepository) {
-				repo.AddURL("https://example.com", "GJFTZTEQ", "user1")
+				repo.AddURL(context.Background(), "https://example.com", "GJFTZTEQ", "user1")
 			},
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
 				repo2 := NewRepository(repo.filePath)
-				result := repo2.GetUrls()
+				result := repo2.GetUrls(context.Background())
 				
 				assert.Equal(t, 1, len(result))
 				assert.Equal(t, "https://example.com", result[0].GetOriginal())
@@ -298,14 +299,14 @@ func TestSetUrls_Overwrite(t *testing.T) {
 		{Original: "https://new1.com", ShortURL: "new1"},
 		{Original: "https://new2.com", ShortURL: "new2"},
 	}
-	repo.SetUrls(newUrls)
+	repo.SetUrls(context.Background(), newUrls)
 
-	result := repo.GetUrls()
+	result := repo.GetUrls(context.Background())
 	assert.Equal(t, 2, len(result))
 	assert.Equal(t, "https://new1.com", result[0].GetOriginal())
 	assert.Equal(t, "new1", result[0].GetShortURL())
 
-	_, err := repo.GetURLByShortURL("old")
+	_, err := repo.GetURLByShortURL(context.Background(), "old")
 	assert.Error(t, err)
 }
 
@@ -319,8 +320,8 @@ func TestAddBatchURL(t *testing.T) {
 		{Original: "https://example3.com", ShortURL: "short3"},
 	}
 
-	result, err := repo.AddBatchURL(batch)
+	result, err := repo.AddBatchURL(context.Background(), batch)
 	require.NoError(t, err)
 	assert.Equal(t, batch, result)
-	assert.Equal(t, 3, len(repo.GetUrls()))
+	assert.Equal(t, 3, len(repo.GetUrls(context.Background())))
 }

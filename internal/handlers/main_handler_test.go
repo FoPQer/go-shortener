@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -75,7 +76,7 @@ func TestGetUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cont.URLService.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls(context.Background(), []*model.Urls{tt.urls})
 			target, _ := url.JoinPath("http://localhost:8080", tt.value)
 			t.Logf("url: %s", target)
 			request := httptest.NewRequest(http.MethodGet, target, nil)
@@ -130,7 +131,7 @@ func TestPostUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cont.URLService.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls(context.Background(), []*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
 			w := httptest.NewRecorder()
 			handler.PostURL(w, request)
@@ -199,7 +200,7 @@ func TestPostURLByJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cont.URLService.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls(context.Background(), []*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewBuffer([]byte(tt.body)))
 			request.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

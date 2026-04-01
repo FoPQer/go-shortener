@@ -13,15 +13,14 @@ import (
 	"github.com/FoPQer/go-shortener/internal/utils"
 )
 
-const secretKey string = "your_secret_key"
-
 type AuthMiddleware struct {
 	userService *service.UserService
 	claimsService *auth.ClaimsService
+	secretKey string
 }
 
 func NewAuthMiddleware(userService *service.UserService, claimsService *auth.ClaimsService) *AuthMiddleware {
-	return &AuthMiddleware{userService: userService, claimsService: claimsService}
+	return &AuthMiddleware{userService: userService, claimsService: claimsService, secretKey: service.GetSecretKey()}
 }
 
 func (m *AuthMiddleware) WithAuth(next http.Handler) http.Handler {
@@ -43,7 +42,7 @@ func (m *AuthMiddleware) WithAuth(next http.Handler) http.Handler {
 		var errMissingUserID *auth.ErrMissingUserID
 		tokenString := cookie.Value
 		log.Printf("Received token: %s", tokenString)
-		userID, err := m.claimsService.GetUserIDFromJWTString(tokenString, []byte(secretKey))
+		userID, err := m.claimsService.GetUserIDFromJWTString(tokenString, []byte(m.secretKey))
 		if errors.As(err, &errInvalidToken) {
 			newCookie, err := m.buildNewCookie(r)
 			if err != nil {
@@ -73,7 +72,7 @@ func (m *AuthMiddleware) buildNewCookie(r *http.Request) (*http.Cookie, error) {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 	claims := m.claimsService.CreateClaims(userID)
-	tokenString, err := m.claimsService.BuildJWTString(claims, []byte(secretKey))
+	tokenString, err := m.claimsService.BuildJWTString(claims, []byte(m.secretKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to build JWT string: %w", err)
 	}

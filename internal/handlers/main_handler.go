@@ -38,13 +38,12 @@ func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	url, err := h.urlService.GetURL(shortURL)
+	url, err := h.urlService.GetURL(req.Context(), shortURL)
 	if errors.Is(err, urls.ErrURLNotFound) {
 		logger.GetSugar().Errorf("URL not found for shortUrl: %s", shortURL)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	} else if errors.Is(err, urls.ErrURLDeleted) {
-		logger.GetSugar().Errorf("URL deleted for shortUrl: %s", shortURL)
 		http.Error(res, "", http.StatusGone)
 		return
 	} else if err != nil {
@@ -71,7 +70,7 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	logger.GetSugar().Infof("body: %s", string(body))
 
 	userID := getUserIDFromContext(req.Context())
-	target, err := h.urlService.SetURL(string(body), userID)
+	target, err := h.urlService.SetURL(req.Context(), string(body), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.WriteHeader(http.StatusConflict)
 	} else if err != nil {
@@ -107,7 +106,7 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	}
 
 	userID := getUserIDFromContext(req.Context())
-	target, err := h.urlService.SetURL(string(url), userID)
+	target, err := h.urlService.SetURL(req.Context(), string(url), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusConflict)
@@ -148,7 +147,7 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 		return
 	}
 	userID := getUserIDFromContext(req.Context())
-	targets, err := h.urlService.SetBatchURL(urls, userID)
+	targets, err := h.urlService.SetBatchURL(req.Context(), urls, userID)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while setting batch url: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -172,7 +171,7 @@ func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("UserID: %s", userID)
-	urls, err := h.urlService.GetUrlsByUserID(userID)
+	urls, err := h.urlService.GetUrlsByUserID(req.Context(), userID)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while getting user URLs: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -211,7 +210,7 @@ func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = h.urlService.DeleteUrls(shortUrls, userID)
+	err = h.urlService.DeleteUrls(req.Context(), shortUrls, userID)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while deleting user URLs: %w", err)
 		http.Error(res, "", http.StatusBadRequest)

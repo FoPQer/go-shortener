@@ -52,3 +52,11 @@ func GetDatabaseDSN() string {
 		return flags.GetFlagDatabaseURL()
 	}
 }
+
+func GetSecretKey() string {
+	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
+		return secretKey
+	} else {
+		return "your_secret_key";
+	}
+}

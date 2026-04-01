@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
@@ -23,11 +22,8 @@ func NewRepository(conn *pgxpool.Pool) *DBUrlsRepository {
 	}
 }
 
-func (r *DBUrlsRepository) GetUrls() []*model.Urls {
+func (r *DBUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	urls := make([]*model.Urls, 0)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
 
 	rows, err := r.conn.Query(
 		ctx, 
@@ -46,14 +42,14 @@ func (r *DBUrlsRepository) GetUrls() []*model.Urls {
 		urls = append(urls, model.NewUrls(original, short))
 	}
 
-	<-ctx.Done()
+	if err := rows.Err(); err != nil {
+		return urls
+	}
+
 	return urls
 }
 
-func (r *DBUrlsRepository) SetUrls(newUrls []*model.Urls) {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-
+func (r *DBUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	for _, u := range newUrls {
 		_, err := r.conn.Exec(
 			ctx, 
@@ -66,14 +62,10 @@ func (r *DBUrlsRepository) SetUrls(newUrls []*model.Urls) {
 			continue
 		}
 	}
-	<-ctx.Done()
 }
 
-func (r *DBUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error) {
+func (r *DBUrlsRepository) GetUrlsByUserID(ctx context.Context, userID string) ([]*model.Urls, error) {
 	urls := make([]*model.Urls, 0)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
 
 	rows, err := r.conn.Query(
 		ctx, 
@@ -95,15 +87,15 @@ func (r *DBUrlsRepository) GetUrlsByUserID(userID string) ([]*model.Urls, error)
 
 	logger.GetSugar().Infof("urls: %v", urls)
 
-	<-ctx.Done()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return urls, nil
 }
 
-func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
+func (r *DBUrlsRepository) GetURLByOriginalURL(ctx context.Context, originalURL string) (*model.Urls, error) {
 	var short string
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
 
 	err := r.conn.QueryRow(
 		ctx, 
@@ -115,18 +107,14 @@ func (r *DBUrlsRepository) GetURLByOriginalURL(originalURL string) (*model.Urls,
 	} else if err != nil {
 		return nil, fmt.Errorf("error find by original URL %s: %w", originalURL, urls.ErrBadValueReceive)
 	}
-	
-	<-ctx.Done()
+
 	return model.NewUrls(originalURL, short), nil
 }
 
 
-func (r *DBUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
+func (r *DBUrlsRepository) GetURLByShortURL(ctx context.Context, shortURL string) (string, error) {
 	var original string
 	var isDeleted bool
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
 
 	err := r.conn.QueryRow(
 		ctx, 
@@ -138,18 +126,14 @@ func (r *DBUrlsRepository) GetURLByShortURL(shortURL string) (string, error) {
 	} else if err != nil {
 		return "", fmt.Errorf("error find by short URL %s: %w", shortURL, urls.ErrBadValueReceive)
 	}
-	
-	<-ctx.Done()
+
 	if isDeleted {
 		return "", urls.ErrURLDeleted
 	}
 	return original, nil
 }
 
-func (r *DBUrlsRepository) AddURL(original, shortURL string, userID string) (*model.Urls, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-
+func (r *DBUrlsRepository) AddURL(ctx context.Context, original, shortURL string, userID string) (*model.Urls, error) {
 	query := "INSERT INTO urls (original_url, short_url, user_id) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING"
 
 	result, err := r.conn.Exec(
@@ -163,7 +147,7 @@ func (r *DBUrlsRepository) AddURL(original, shortURL string, userID string) (*mo
 		return nil, err
 	}
 	if result.RowsAffected() == 0 {
-		url, err := r.GetURLByOriginalURL(original)
+		url, err := r.GetURLByOriginalURL(ctx, original)
 		if err != nil {
 			return nil, errors.Join(err, urls.ErrURLAlreadyExists)
 		}
@@ -171,14 +155,10 @@ func (r *DBUrlsRepository) AddURL(original, shortURL string, userID string) (*mo
 		return url, urls.ErrURLAlreadyExists
 	}
 
-	<-ctx.Done()
 	return model.NewUrls(original, shortURL), nil
 }
 
-func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-
+func (r *DBUrlsRepository) AddBatchURL(ctx context.Context, batchURLs []*model.Urls) ([]*model.Urls, error) {
 	results := make([]*model.Urls, 0, len(batchURLs))
 	batch := &pgx.Batch{}
 
@@ -199,7 +179,7 @@ func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, 
 		var url *model.Urls
 
 		if result.RowsAffected() == 0 {
-			url, err = r.GetURLByOriginalURL(u.GetOriginal())
+			url, err = r.GetURLByOriginalURL(ctx, u.GetOriginal())
 			if err != nil {
 				return nil, errors.Join(fmt.Errorf("unable to get URL by original URL %s: %w", u.GetOriginal(), err), urls.ErrURLAlreadyExists)
 			}
@@ -210,14 +190,10 @@ func (r *DBUrlsRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, 
 		results = append(results, url)
 	}
 
-	<-ctx.Done()
 	return results, nil
 }
 
-func (r *DBUrlsRepository) DeleteUrls(shortUrls []string, userID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-
+func (r *DBUrlsRepository) DeleteUrls(ctx context.Context, shortUrls []string, userID string) error {
 	_, err := r.conn.Exec(
 		ctx, 
 		"UPDATE urls SET is_deleted = TRUE WHERE short_url = ANY($1) AND user_id = $2",
@@ -230,6 +206,5 @@ func (r *DBUrlsRepository) DeleteUrls(shortUrls []string, userID string) error {
 		return fmt.Errorf("error while deleting urls: %v: %w", shortUrls, err)
 	}
 
-	<-ctx.Done()
 	return nil
 }
