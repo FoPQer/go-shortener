@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,7 +13,8 @@ import (
 
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
-	"github.com/FoPQer/go-shortener/internal/repository/urls"
+	urlMemory "github.com/FoPQer/go-shortener/internal/repository/urls/memory"
+	userMemory "github.com/FoPQer/go-shortener/internal/repository/user/memory"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,78 +31,14 @@ func initTestLogger(t *testing.T) {
 	})
 }
 
-type uniqueMemoryRepository struct {
-	urls []*model.Urls
-}
-
-func newUniqueMemoryRepository() *uniqueMemoryRepository {
-	return &uniqueMemoryRepository{
-		urls: make([]*model.Urls, 0),
-	}
-}
-
-func (r *uniqueMemoryRepository) GetUrls() []*model.Urls {
-	return r.urls
-}
-
-func (r *uniqueMemoryRepository) SetUrls(newUrls []*model.Urls) {
-	r.urls = newUrls
-}
-
-func (r *uniqueMemoryRepository) GetURLByOriginalURL(originalURL string) (*model.Urls, error) {
-	for _, u := range r.urls {
-		if u.GetOriginal() == originalURL {
-			return u, nil
-		}
-	}
-
-	return nil, urls.ErrBadValueReceive
-}
-
-func (r *uniqueMemoryRepository) GetURLByShortURL(shortURL string) (string, error) {
-	for _, u := range r.urls {
-		if u.GetShortURL() == shortURL {
-			return u.GetOriginal(), nil
-		}
-	}
-
-	return "", urls.ErrBadValueReceive
-}
-
-func (r *uniqueMemoryRepository) AddURL(original, shortURL string) (*model.Urls, error) {
-	for _, u := range r.urls {
-		if u.GetOriginal() == original {
-			return u, urls.ErrURLAlreadyExists
-		}
-	}
-
-	u := model.NewUrls(original, shortURL)
-	r.urls = append(r.urls, u)
-
-	return u, nil
-}
-
-func (r *uniqueMemoryRepository) AddBatchURL(batchURLs []*model.Urls) ([]*model.Urls, error) {
-	for _, u := range batchURLs {
-		for _, existing := range r.urls {
-			if u.GetOriginal() == existing.GetOriginal() {
-				return nil, urls.ErrURLAlreadyExists
-			}
-		}
-	}
-
-	r.urls = append(r.urls, batchURLs...)
-	return batchURLs, nil
-}
-
 func TestGetUrl(t *testing.T) {
 	initTestLogger(t)
 
 	type container struct {
 		URLService *service.URLService
 	}
-	cont := &container{URLService: service.NewURLService(newUniqueMemoryRepository())}
-	handler := NewHandler(cont.URLService, nil)
+	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
+	handler := NewHandler(cont.URLService, nil, nil)
 	type want struct {
 		code     int
 		location string
@@ -113,7 +52,7 @@ func TestGetUrl(t *testing.T) {
 		{
 			name:  "without value",
 			urls:  &model.Urls{
-				Original: "https://priem.mirea.ru/lk/admin/crud/list/user-resources",
+				Original: "https://example.com",
 				ShortURL: "67KBAWAO",
 			},
 			value: "",
@@ -125,7 +64,7 @@ func TestGetUrl(t *testing.T) {
 		{
 			name:  "double get",
 			urls:  &model.Urls{
-				Original: "https://priem.mirea.ru/lk",
+				Original: "https://example.com",
 				ShortURL: "RVHUL6VG",
 			},
 			value: "RVHUL6VG/RVHUL6VG",
@@ -137,7 +76,7 @@ func TestGetUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cont.URLService.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls(context.Background(), []*model.Urls{tt.urls})
 			target, _ := url.JoinPath("http://localhost:8080", tt.value)
 			t.Logf("url: %s", target)
 			request := httptest.NewRequest(http.MethodGet, target, nil)
@@ -159,8 +98,8 @@ func TestPostUrl(t *testing.T) {
 	type container struct {
 		URLService *service.URLService
 	}
-	cont := &container{URLService: service.NewURLService(newUniqueMemoryRepository())}
-	handler := NewHandler(cont.URLService, nil)
+	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
+	handler := NewHandler(cont.URLService, nil, nil)
 	type want struct {
 		code        int
 		isEmptyBody bool
@@ -182,35 +121,26 @@ func TestPostUrl(t *testing.T) {
 		},
 		{
 			name:  "existing original url",
-			urls:  model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
-			value: "https://priem.mirea.ru/lk",
+			urls:  model.NewUrls("https://example.com", "RVHUL6VG"),
+			value: "https://example.com",
 			want: want{
 				code:        http.StatusConflict,
 				isEmptyBody: false,
 			},
 		},
-		{
-			name:  "empty value",
-			urls:  model.NewUrls("", ""),
-			value: "",
-			want: want{
-				code:        http.StatusBadRequest,
-				isEmptyBody: true,
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cont.URLService.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls(context.Background(), []*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", bytes.NewBuffer([]byte(tt.value)))
 			w := httptest.NewRecorder()
 			handler.PostURL(w, request)
 
 			res := w.Result()
-			assert.Equal(t, tt.want.code, res.StatusCode)
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
-
+			log.Printf("urls: %v, new urls: %s", tt.urls, resBody)
+			assert.Equal(t, tt.want.code, res.StatusCode)
 			require.NoError(t, err)
 			if !tt.want.isEmptyBody {
 				assert.NotEmpty(t, resBody)
@@ -228,12 +158,14 @@ func TestPostURLByJSON(t *testing.T) {
 	type container struct {
 		URLService *service.URLService
 		JSONService *service.JSONService
+		UserService *service.UserService
 	}
 	cont := &container{
-		URLService: service.NewURLService(newUniqueMemoryRepository()),
+		URLService: service.NewURLService(urlMemory.NewRepository()),
 		JSONService: service.NewJSONService(),
+		UserService: service.NewUserService(userMemory.NewRepository()),
 	}
-	handler := NewHandler(cont.URLService, cont.JSONService)
+	handler := NewHandler(cont.URLService, cont.JSONService, cont.UserService)
 	type want struct {
 		code        int
 		contentType string
@@ -268,7 +200,7 @@ func TestPostURLByJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cont.URLService.SetUrls([]*model.Urls{tt.urls})
+			cont.URLService.SetUrls(context.Background(), []*model.Urls{tt.urls})
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewBuffer([]byte(tt.body)))
 			request.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

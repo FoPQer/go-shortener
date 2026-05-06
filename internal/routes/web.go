@@ -7,17 +7,25 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func InitWebRoutes(r *chi.Mux, handler *handlers.Handler, dbHandler *handlers.DBHandler) {
+func InitWebRoutes(r *chi.Mux, handler *handlers.Handler, dbHandler *handlers.DBHandler, authMiddleware *middlewares.AuthMiddleware) {
 	base := service.GetBasePrefix()
 
 	r.Use(middlewares.WithGzip, middlewares.WithLogging)
 
-	r.Get("/ping", dbHandler.GetPing)
-	r.Get(base+"{id}", handler.GetURL)
-	r.Post("/", handler.PostURL)
+	auth := r.Group(func(auth chi.Router) {
+		auth.Use(authMiddleware.WithAuth)
+	})
 
-	r.Route("/api", func(api chi.Router) {
+	r.Get("/ping", dbHandler.GetPing)
+	auth.Get(base+"{id}", handler.GetURL)
+	auth.Post("/", handler.PostURL)
+
+	auth.Route("/api", func(api chi.Router) {
 		api.Post("/shorten", handler.PostURLByJSON)
 		api.Post("/shorten/batch", handler.PostBatchURLByJSON)
+		api.Route("/user", func(user chi.Router) {
+			user.Get("/urls", handler.GetUserURLs)
+			user.Delete("/urls", handler.DeleteUserURLs)
+		})
 	})
 }

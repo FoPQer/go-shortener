@@ -5,22 +5,30 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/logger"
 )
 
-type DBHandler struct {
-	db *db.PgxConf
+// DBPinger is an interface for database ping operations.
+type DBPinger interface {
+	Ping(ctx context.Context) error
 }
 
-func NewDBHandler(db *db.PgxConf) *DBHandler {
+type DBHandler struct {
+	db DBPinger
+}
+
+func NewDBHandler(db DBPinger) *DBHandler {
 	return &DBHandler{db: db}
 }
 
 func (h *DBHandler) GetPing(res http.ResponseWriter, req *http.Request) {
+	if h.db == nil {
+		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	if err := h.db.GetDBConn().Ping(ctx); err != nil {
+	if err := h.db.Ping(ctx); err != nil {
 		logger.GetSugar().Errorf("Database ping failed: %v", err)
 		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

@@ -1,35 +1,53 @@
 package handlers
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/logger"
+	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/FoPQer/go-shortener/internal/service"
+	"github.com/FoPQer/go-shortener/internal/utils"
 	"github.com/go-chi/chi/v5"
 )
+
+type OutputUserUrlsJSON struct {
+	ShortURL string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
 
 type Handler struct {
 	urlService *service.URLService
 	jsonService *service.JSONService
+	userService *service.UserService
 }
 
-func NewHandler(urlService *service.URLService, jsonService *service.JSONService) *Handler {
-	return &Handler{urlService: urlService, jsonService: jsonService}
+func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService) *Handler {
+	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService}
 }
 
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
-	id := chi.URLParam(req, "id")
-	if id == "" {
+	shortURL := chi.URLParam(req, "id")
+	if shortURL == "" {
 		logger.GetSugar().Errorln("Error while getting by shortUrl: empty id")
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
 
-	url, err := h.urlService.GetURL(id)
-	if err != nil {
+	url, err := h.urlService.GetURL(req.Context(), shortURL)
+	if errors.Is(err, urls.ErrURLNotFound) {
+		logger.GetSugar().Errorf("URL not found for shortUrl: %s", shortURL)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	} else if errors.Is(err, urls.ErrURLDeleted) {
+		http.Error(res, "", http.StatusGone)
+		return
+	} else if err != nil {
+		logger.GetSugar().Errorf("Error while getting from urlService by shortUrl: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
@@ -50,7 +68,9 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("body: %s", string(body))
-	target, err := h.urlService.SetURL(string(body))
+
+	userID := getUserIDFromContext(req.Context())
+	target, err := h.urlService.SetURL(req.Context(), string(body), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.WriteHeader(http.StatusConflict)
 	} else if err != nil {
@@ -85,7 +105,8 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	target, err := h.urlService.SetURL(string(url))
+	userID := getUserIDFromContext(req.Context())
+	target, err := h.urlService.SetURL(req.Context(), string(url), userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusConflict)
@@ -125,7 +146,8 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
-	targets, err := h.urlService.SetBatchURL(urls)
+	userID := getUserIDFromContext(req.Context())
+	targets, err := h.urlService.SetBatchURL(req.Context(), urls, userID)
 	if err != nil {
 		logger.GetSugar().Errorf("Error while setting batch url: %w", err)
 		http.Error(res, "", http.StatusBadRequest)
@@ -141,3 +163,110 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 	res.WriteHeader(http.StatusCreated)
 	res.Write(out)
 }
+
+func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
+	userID := getUserIDFromContext(req.Context())
+	if userID == "" {
+		http.Error(res, "Missing user ID", http.StatusUnauthorized)
+		return
+	}
+	logger.GetSugar().Infof("UserID: %s", userID)
+	urls, err := h.urlService.GetUrlsByUserID(req.Context(), userID)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while getting user URLs: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+	if len(urls) == 0 {
+		logger.GetSugar().Infof("No URLs found for user ID: %s", userID)
+		res.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	out, err := setUserUrlsToJSON(urls)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while setting user URLs to JSON: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write(out)
+}
+
+func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
+	userID := getUserIDFromContext(req.Context())
+	if userID == "" {
+		http.Error(res, "Missing user ID", http.StatusUnauthorized)
+		return
+	}
+	logger.GetSugar().Infof("UserID: %s", userID)
+
+	shortUrls, err := getUrlsFromJSON(req.Body)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while getting URLs from JSON: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	err = h.urlService.DeleteUrls(req.Context(), shortUrls, userID)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while deleting user URLs: %w", err)
+		http.Error(res, "", http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusAccepted)
+}
+
+func getUserIDFromContext(ctx context.Context) string {
+	var userID string
+	if ctx.Value(utils.UserID("userID")) != nil {
+		userID = ctx.Value(utils.UserID("userID")).(string)
+	} else {
+		userID = ""
+	}
+	return userID
+}
+
+func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
+	output, err := getUrlsJSONFromUrlsSlice(input)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := json.Marshal(output)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJSON, error) {
+	output := make([]OutputUserUrlsJSON, 0, len(urls))
+	for _, u := range urls {
+		short, err := service.MakeShortURL(u.GetShortURL())
+		if err != nil {
+			return output, err
+		}
+		output = append(output, OutputUserUrlsJSON{
+			ShortURL:    short,
+			OriginalURL: u.GetOriginal(),
+		})
+	}
+
+	return output, nil
+}
+
+func getUrlsFromJSON(body io.ReadCloser) ([]string, error) {
+	var input []string
+	err := json.NewDecoder(body).Decode(&input)
+	if err != nil {
+		logger.GetSugar().Errorf("Error while decoding JSON: %w", err)
+		return nil, err
+	}
+	return input, nil
+}
+

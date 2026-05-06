@@ -1,0 +1,33 @@
+package model
+
+type User struct {
+	ID   string  `json:"id"`
+	Urls []*Urls `json:"urls"`
+}
+
+func NewUser(id string) *User {
+	return &User{
+		ID:   id,
+		Urls: make([]*Urls, 0),
+	}
+}
+
+func (u *User) GetID() string {
+	return u.ID
+}
+
+func (u *User) SetID(id string) {
+	u.ID = id
+}
+
+func (u *User) GetURLs() []*Urls {
+	return u.Urls
+}
+
+func (u *User) SetURLs(urls []*Urls) {
+	u.Urls = urls
+}
+
+func (u *User) AddURL(url *Urls) {
+	u.Urls = append(u.Urls, url)
+}
