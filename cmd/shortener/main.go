@@ -15,6 +15,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -78,6 +79,7 @@ func main() {
 
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
+	r.Mount("/debug", chiMiddleware.Profiler())
 
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
