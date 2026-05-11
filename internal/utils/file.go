@@ -7,6 +7,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/model"
 )
 
+// WriteToFile serializes URL entities and writes them to the specified file path.
 func WriteToFile(filePath string, urls []*model.Urls) error {
 	file, err := os.Create(filePath)
 	if err != nil {

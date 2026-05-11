@@ -33,6 +33,7 @@ var (
 	auditURL     string
 )
 
+// GetRunAddr returns the configured server address.
 func GetRunAddr() string {
 	runAddrOnce.Do(func() {
 		if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
@@ -46,6 +47,7 @@ func GetRunAddr() string {
 	return runAddr
 }
 
+// GetBasePrefix returns the configured URL base prefix.
 func GetBasePrefix() string {
 	basePrefixOnce.Do(func() {
 		if base := os.Getenv("BASE_URL"); base != "" {
@@ -67,6 +69,7 @@ func GetBasePrefix() string {
 	return basePrefix
 }
 
+// GetFileStoragePath returns the configured file storage path.
 func GetFileStoragePath() string {
 	fileStoragePathOnce.Do(func() {
 		if path := os.Getenv("FILE_STORAGE_PATH"); path != "" {
@@ -80,6 +83,7 @@ func GetFileStoragePath() string {
 	return fileStoragePath
 }
 
+// GetDatabaseDSN returns the configured database DSN.
 func GetDatabaseDSN() string {
 	databaseDSNOnce.Do(func() {
 		if dsn := os.Getenv("DATABASE_DSN"); dsn != "" {
@@ -93,6 +97,7 @@ func GetDatabaseDSN() string {
 	return databaseDSN
 }
 
+// GetSecretKey returns the JWT secret key.
 func GetSecretKey() string {
 	secretKeyOnce.Do(func() {
 		if value := os.Getenv("SECRET_KEY"); value != "" {
@@ -106,6 +111,7 @@ func GetSecretKey() string {
 	return secretKey
 }
 
+// GetAuditFile returns the configured audit file path.
 func GetAuditFile() string {
 	auditFileOnce.Do(func() {
 		if value := os.Getenv("AUDIT_FILE"); value != "" {
@@ -119,6 +125,7 @@ func GetAuditFile() string {
 	return auditFile
 }
 
+// GetAuditURL returns the configured audit endpoint URL.
 func GetAuditURL() string {
 	auditURLOnce.Do(func() {
 		if value := os.Getenv("AUDIT_URL"); value != "" {
@@ -132,6 +139,7 @@ func GetAuditURL() string {
 	return auditURL
 }
 
+// resetConfigCache clears cached configuration values.
 func resetConfigCache() {
 	runAddrOnce = sync.Once{}
 	runAddr = ""
@@ -155,6 +163,7 @@ func resetConfigCache() {
 	auditURL = ""
 }
 
+// normalizePath trims quotes and whitespace and returns a cleaned file path.
 func normalizePath(path string) string {
 	path = strings.TrimSpace(path)
 	path = strings.Trim(path, "\"'")

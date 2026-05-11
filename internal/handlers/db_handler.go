@@ -13,14 +13,17 @@ type DBPinger interface {
 	Ping(ctx context.Context) error
 }
 
+// DBHandler serves health-check endpoints backed by database connectivity checks.
 type DBHandler struct {
 	db DBPinger
 }
 
+// NewDBHandler constructs a DBHandler with the provided DBPinger implementation.
 func NewDBHandler(db DBPinger) *DBHandler {
 	return &DBHandler{db: db}
 }
 
+// GetPing checks database availability and returns HTTP 200 when the ping succeeds.
 func (h *DBHandler) GetPing(res http.ResponseWriter, req *http.Request) {
 	if h.db == nil {
 		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

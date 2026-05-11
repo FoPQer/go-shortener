@@ -13,19 +13,24 @@ import (
 	"github.com/FoPQer/go-shortener/internal/utils"
 )
 
+// Action describes the type of user interaction captured by audit logging.
 type Action string
 
 const (
+	// ActionShorten indicates short URL creation.
 	ActionShorten Action = "shorten"
-	ActionFollow  Action = "follow"
+	// ActionFollow indicates opening a short URL and following redirect.
+	ActionFollow Action = "follow"
 )
 
+// AuditEvent is an in-process event published by handlers and services.
 type AuditEvent struct {
 	Action Action
 	UserID utils.UserID
 	URL    string
 }
 
+// AuditDTO is a serialized audit record used for file and HTTP transport.
 type AuditDTO struct {
 	Timestamp int64        `json:"ts"`
 	Action    Action       `json:"action"`
@@ -33,17 +38,22 @@ type AuditDTO struct {
 	URL       string       `json:"url,omitempty"`
 }
 
+// Publisher broadcasts audit events to registered subscribers.
 type Publisher interface {
 	AddSubscriber(a Auditor)
 	Publish(event AuditEvent)
 }
 
+// AuditBus is an in-memory pub/sub bus for audit events.
 type AuditBus struct {
 	mu          sync.RWMutex
 	subscribers []chan AuditEvent
 	buffer      int
 }
 
+// NewAuditBus creates an AuditBus with a per-subscriber channel buffer.
+//
+// Buffer values less than 1 are normalized to 1.
 func NewAuditBus(buffer int) *AuditBus {
 	if buffer < 1 {
 		buffer = 1
@@ -52,6 +62,7 @@ func NewAuditBus(buffer int) *AuditBus {
 	return &AuditBus{buffer: buffer}
 }
 
+// AddSubscriber registers an auditor and starts asynchronous event consumption.
 func (b *AuditBus) AddSubscriber(a Auditor) {
 	ch := make(chan AuditEvent, b.buffer)
 
@@ -62,6 +73,9 @@ func (b *AuditBus) AddSubscriber(a Auditor) {
 	go a.Subscribe(ch)
 }
 
+// Publish sends an event to all subscribers in a non-blocking manner.
+//
+// Events are dropped when a subscriber buffer is full.
 func (b *AuditBus) Publish(event AuditEvent) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -75,15 +89,18 @@ func (b *AuditBus) Publish(event AuditEvent) {
 	}
 }
 
+// Auditor consumes audit events from a subscription channel.
 type Auditor interface {
 	Subscribe(events <-chan AuditEvent)
 }
 
+// AuditFile writes audit events to a local file as JSON lines.
 type AuditFile struct {
 	ID       int
 	FilePath string
 }
 
+// NewAuditFile creates a file-backed auditor.
 func NewAuditFile(id int, filePath string) *AuditFile {
 	return &AuditFile{
 		ID:       id,
@@ -91,6 +108,7 @@ func NewAuditFile(id int, filePath string) *AuditFile {
 	}
 }
 
+// Subscribe consumes events and persists each one to file storage.
 func (s *AuditFile) Subscribe(events <-chan AuditEvent) {
 	for event := range events {
 		if err := s.WriteAudit(event); err != nil {
@@ -101,6 +119,7 @@ func (s *AuditFile) Subscribe(events <-chan AuditEvent) {
 	}
 }
 
+// WriteAudit appends a serialized audit event to the configured file.
 func (s *AuditFile) WriteAudit(event AuditEvent) error {
 	auditDTO := AuditDTO{
 		Timestamp: getCurrentTimestamp(),
@@ -118,12 +137,14 @@ func (s *AuditFile) WriteAudit(event AuditEvent) error {
 	return nil
 }
 
+// AuditURL sends audit events to a remote HTTP endpoint.
 type AuditURL struct {
 	ID     int
 	URL    string
 	Events chan AuditEvent
 }
 
+// NewAuditURL creates an HTTP-backed auditor with an internal event buffer.
 func NewAuditURL(id int, url string) *AuditURL {
 	return &AuditURL{
 		ID:     id,
@@ -132,12 +153,16 @@ func NewAuditURL(id int, url string) *AuditURL {
 	}
 }
 
+// Subscribe consumes events from a subscription channel.
+//
+// Current implementation logs received events.
 func (s *AuditURL) Subscribe(events <-chan AuditEvent) {
 	for event := range events {
 		logger.GetSugar().Infof("AuditURL received event, event: %+v, id: %v, url: %s", event, s.ID, s.URL)
 	}
 }
 
+// SendAudit serializes and sends an audit event to the configured remote endpoint.
 func (s *AuditURL) SendAudit(event AuditEvent) {
 	auditDTO := AuditDTO{
 		Timestamp: getCurrentTimestamp(),
@@ -171,6 +196,7 @@ func (s *AuditURL) SendAudit(event AuditEvent) {
 	}
 }
 
+// getCurrentTimestamp returns the current Unix timestamp in seconds.
 func getCurrentTimestamp() int64 {
 	return time.Now().Unix()
 }

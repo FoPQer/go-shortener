@@ -12,16 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DBUserRepository stores user data in PostgreSQL.
 type DBUserRepository struct {
 	conn *pgxpool.Pool
 }
 
+// NewRepository creates a PostgreSQL-backed user repository.
 func NewRepository(conn *pgxpool.Pool) *DBUserRepository {
 	return &DBUserRepository{
 		conn: conn,
 	}
 }
 
+// FindByID retrieves a user by its identifier.
 func (r *DBUserRepository) FindByID(ctx context.Context, id string) (*model.User, error) {
 	user := &model.User{}
 
@@ -43,6 +46,7 @@ func (r *DBUserRepository) FindByID(ctx context.Context, id string) (*model.User
 	return user, nil
 }
 
+// Save inserts a new user and returns its generated identifier.
 func (r *DBUserRepository) Save(ctx context.Context, user *model.User) (string, error) {
 	row := r.conn.QueryRow(
 		ctx,

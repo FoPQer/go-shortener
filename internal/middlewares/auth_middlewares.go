@@ -13,16 +13,19 @@ import (
 	"github.com/FoPQer/go-shortener/internal/utils"
 )
 
+// AuthMiddleware handles authentication via JWT stored in the X-Auth-Token cookie.
 type AuthMiddleware struct {
 	userService   *service.UserService
 	claimsService *auth.ClaimsService
 	secretKey     string
 }
 
+// NewAuthMiddleware constructs AuthMiddleware with user and claims services.
 func NewAuthMiddleware(userService *service.UserService, claimsService *auth.ClaimsService) *AuthMiddleware {
 	return &AuthMiddleware{userService: userService, claimsService: claimsService, secretKey: service.GetSecretKey()}
 }
 
+// WithAuth validates or creates auth cookie, extracts user ID, and stores it in request context.
 func (m *AuthMiddleware) WithAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("X-Auth-Token")
@@ -66,6 +69,7 @@ func (m *AuthMiddleware) WithAuth(next http.Handler) http.Handler {
 	})
 }
 
+// buildNewCookie creates a new user, builds JWT token, and returns auth cookie.
 func (m *AuthMiddleware) buildNewCookie(r *http.Request) (*http.Cookie, error) {
 	userID, err := m.userService.Create(r.Context(), &model.User{})
 	if err != nil {

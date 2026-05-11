@@ -12,16 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DBUrlsRepository stores URL data in PostgreSQL.
 type DBUrlsRepository struct {
 	conn *pgxpool.Pool
 }
 
+// NewRepository creates a PostgreSQL-backed URL repository.
 func NewRepository(conn *pgxpool.Pool) *DBUrlsRepository {
 	return &DBUrlsRepository{
 		conn: conn,
 	}
 }
 
+// GetUrls returns all URLs stored in the database.
 func (r *DBUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	urls := make([]*model.Urls, 0)
 
@@ -49,6 +52,7 @@ func (r *DBUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	return urls
 }
 
+// SetUrls inserts a collection of URLs into the database.
 func (r *DBUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	for _, u := range newUrls {
 		_, err := r.conn.Exec(
@@ -64,6 +68,7 @@ func (r *DBUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	}
 }
 
+// GetUrlsByUserID returns non-deleted URLs that belong to the specified user.
 func (r *DBUrlsRepository) GetUrlsByUserID(ctx context.Context, userID string) ([]*model.Urls, error) {
 	urls := make([]*model.Urls, 0)
 
@@ -94,6 +99,7 @@ func (r *DBUrlsRepository) GetUrlsByUserID(ctx context.Context, userID string) (
 	return urls, nil
 }
 
+// GetURLByOriginalURL finds a URL entity by its original URL.
 func (r *DBUrlsRepository) GetURLByOriginalURL(ctx context.Context, originalURL string) (*model.Urls, error) {
 	var short string
 
@@ -111,6 +117,7 @@ func (r *DBUrlsRepository) GetURLByOriginalURL(ctx context.Context, originalURL 
 	return model.NewUrls(originalURL, short), nil
 }
 
+// GetURLByShortURL resolves a short URL token to its original URL.
 func (r *DBUrlsRepository) GetURLByShortURL(ctx context.Context, shortURL string) (string, error) {
 	var original string
 	var isDeleted bool
@@ -132,6 +139,7 @@ func (r *DBUrlsRepository) GetURLByShortURL(ctx context.Context, shortURL string
 	return original, nil
 }
 
+// AddURL inserts a new URL and returns the created entity.
 func (r *DBUrlsRepository) AddURL(ctx context.Context, original, shortURL string, userID string) (*model.Urls, error) {
 	query := "INSERT INTO urls (original_url, short_url, user_id) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING"
 
@@ -157,6 +165,7 @@ func (r *DBUrlsRepository) AddURL(ctx context.Context, original, shortURL string
 	return model.NewUrls(original, shortURL), nil
 }
 
+// AddBatchURL inserts multiple URLs and returns the stored entities.
 func (r *DBUrlsRepository) AddBatchURL(ctx context.Context, batchURLs []*model.Urls) ([]*model.Urls, error) {
 	results := make([]*model.Urls, 0, len(batchURLs))
 	batch := &pgx.Batch{}
@@ -192,6 +201,7 @@ func (r *DBUrlsRepository) AddBatchURL(ctx context.Context, batchURLs []*model.U
 	return results, nil
 }
 
+// DeleteUrls marks the specified URLs as deleted for the given user.
 func (r *DBUrlsRepository) DeleteUrls(ctx context.Context, shortUrls []string, userID string) error {
 	_, err := r.conn.Exec(
 		ctx,

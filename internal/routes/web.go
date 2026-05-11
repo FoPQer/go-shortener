@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// InitWebRoutes registers all HTTP routes and attaches shared middlewares.
 func InitWebRoutes(r *chi.Mux, handler *handlers.Handler, dbHandler *handlers.DBHandler, authMiddleware *middlewares.AuthMiddleware) {
 	base := service.GetBasePrefix()
 

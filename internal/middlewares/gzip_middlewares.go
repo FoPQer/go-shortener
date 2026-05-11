@@ -7,15 +7,18 @@ import (
 	"strings"
 )
 
+// gzipResponseWriter writes HTTP response data through the configured writer.
 type gzipResponseWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
 }
 
+// Write writes response bytes to the wrapped writer.
 func (w gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// WithGzip enables gzip request decompression and response compression when supported.
 func WithGzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !supportsGzip(r) {
@@ -56,14 +59,17 @@ func WithGzip(next http.Handler) http.Handler {
 	})
 }
 
+// supportsGzip reports whether client accepts gzip-encoded responses.
 func supportsGzip(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 }
 
+// contentGzip reports whether request body is gzip-encoded.
 func contentGzip(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Content-Encoding"), "gzip")
 }
 
+// isCompressibleContentType reports whether content type should be gzip-compressed.
 func isCompressibleContentType(contentType string) bool {
 	return strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")
 }

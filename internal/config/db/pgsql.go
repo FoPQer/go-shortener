@@ -14,22 +14,28 @@ import (
 )
 
 var (
-	ErrConnNotFound    = errors.New("connection to database not found")
+	// ErrConnNotFound indicates that database DSN is not configured.
+	ErrConnNotFound = errors.New("connection to database not found")
+	// ErrUnableToConnect indicates that opening a database connection failed.
 	ErrUnableToConnect = errors.New("unable to connect to database")
 )
 
+// PgxConf stores PostgreSQL connection configuration.
 type PgxConf struct {
 	DB *pgxpool.Pool
 }
 
+// GetDBConn returns the active PostgreSQL connection pool.
 func (p *PgxConf) GetDBConn() *pgxpool.Pool {
 	return p.DB
 }
 
+// SetDBConn sets the active PostgreSQL connection pool.
 func (p *PgxConf) SetDBConn(conn *pgxpool.Pool) {
 	p.DB = conn
 }
 
+// InitPgsql initializes PostgreSQL connection and applies database migrations.
 func InitPgsql() (*PgxConf, error) {
 	var pgxConf = &PgxConf{}
 	if service.GetDatabaseDSN() == "" {
@@ -49,6 +55,7 @@ func InitPgsql() (*PgxConf, error) {
 	return pgxConf, nil
 }
 
+// runMigrations applies all pending migrations from the migrations directory.
 func runMigrations() error {
 	m, err := migrate.New(
 		"file://migrations",
