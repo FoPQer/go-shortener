@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/events"
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
@@ -24,10 +25,11 @@ type Handler struct {
 	urlService *service.URLService
 	jsonService *service.JSONService
 	userService *service.UserService
+	publisher events.Publisher
 }
 
-func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService) *Handler {
-	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService}
+func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService, publisher events.Publisher) *Handler {
+	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService, publisher: publisher}
 }
 
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
@@ -51,6 +53,12 @@ func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
+	userID := getUserIDFromContext(req.Context())
+	go h.publishAudit(events.AuditEvent{
+		Action: events.ActionFollow,
+		UserID: utils.UserID(userID),
+		URL:    url,
+	})
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
@@ -79,6 +87,11 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("target: %s", target)
+	go h.publishAudit(events.AuditEvent{
+		Action:      events.ActionShorten,
+		UserID:      utils.UserID(userID),
+		URL:         string(body),
+	})
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
@@ -122,6 +135,11 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
+	go h.publishAudit(events.AuditEvent{
+		Action: events.ActionShorten,
+		UserID: utils.UserID(userID),
+		URL:    string(url),
+	})
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
@@ -228,6 +246,14 @@ func getUserIDFromContext(ctx context.Context) string {
 		userID = ""
 	}
 	return userID
+}
+
+func (h *Handler) publishAudit(event events.AuditEvent) {
+	if h.publisher == nil {
+		return
+	}
+
+	h.publisher.Publish(event)
 }
 
 func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {

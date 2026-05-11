@@ -7,6 +7,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/auth"
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
+	"github.com/FoPQer/go-shortener/internal/events"
 	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/middlewares"
@@ -49,12 +50,35 @@ func main() {
 
 	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
 
-	handler := handlers.NewHandler(urlService, jsonService, userService)
+	auditFilePath := service.GetAuditFile()
+	auditURLPath := service.GetAuditURL()
+	var auditPublisher events.Publisher
+	if auditFilePath == "" && auditURLPath == "" {
+		logger.GetSugar().Infoln("No audit destination specified, skipping audit setup")
+	} else {
+		auditBus := events.NewAuditBus(100)
+		auditPublisher = auditBus
+
+		if auditFilePath != "" {
+			auditFile := events.NewAuditFile(1, auditFilePath)
+			auditBus.AddSubscriber(auditFile)
+			logger.GetSugar().Infoln("Audit file successfully setup")
+		}
+
+		if auditURLPath != "" {
+			auditURL := events.NewAuditURL(1, auditURLPath)
+			auditBus.AddSubscriber(auditURL)
+			logger.GetSugar().Infoln("Audit url successfully setup")
+		}
+	}
+
+	handler := handlers.NewHandler(urlService, jsonService, userService, auditPublisher)
 	dbHandler := handlers.NewDBHandler(pgxConf.GetDBConn())
 
 
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
+
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)
