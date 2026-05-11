@@ -16,7 +16,7 @@ import (
 )
 
 type RepositoryFactory struct {
-	conn *pgxpool.Pool
+	conn     *pgxpool.Pool
 	filePath string
 }
 

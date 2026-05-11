@@ -30,21 +30,21 @@ func main() {
 	}
 	if pgxConf.GetDBConn() != nil {
 		defer pgxConf.GetDBConn().Close()
-	} 
+	}
 
 	factory := repoFactory.NewRepositoryFactory(pgxConf.GetDBConn(), service.GetFileStoragePath())
-		
-    urlRepo, err := factory.CreateUrlsRepository()
-    if err != nil {
-        panic(err)
-    }
+
+	urlRepo, err := factory.CreateUrlsRepository()
+	if err != nil {
+		panic(err)
+	}
 
 	userRepo, err := factory.CreateUserRepository()
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 
-    urlService := service.NewURLService(urlRepo)
+	urlService := service.NewURLService(urlRepo)
 	jsonService := service.NewJSONService()
 	userService := service.NewUserService(userRepo)
 	claimsService := auth.NewClaimsService()
@@ -76,11 +76,9 @@ func main() {
 	handler := handlers.NewHandler(urlService, jsonService, userService, auditPublisher)
 	dbHandler := handlers.NewDBHandler(pgxConf.GetDBConn())
 
-
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
-
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)

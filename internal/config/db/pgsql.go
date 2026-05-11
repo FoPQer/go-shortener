@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ErrConnNotFound = errors.New("connection to database not found")
+	ErrConnNotFound    = errors.New("connection to database not found")
 	ErrUnableToConnect = errors.New("unable to connect to database")
 )
 
@@ -39,12 +39,12 @@ func InitPgsql() (*PgxConf, error) {
 	if err != nil {
 		return pgxConf, ErrUnableToConnect
 	}
-	
+
 	logger.GetSugar().Infoln("Connected to database successfully")
 	if err := runMigrations(); err != nil {
 		return pgxConf, err
 	}
-	
+
 	pgxConf.SetDBConn(conn)
 	return pgxConf, nil
 }

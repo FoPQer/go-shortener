@@ -17,15 +17,15 @@ import (
 )
 
 type OutputUserUrlsJSON struct {
-	ShortURL string `json:"short_url"`
+	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
 type Handler struct {
-	urlService *service.URLService
+	urlService  *service.URLService
 	jsonService *service.JSONService
 	userService *service.UserService
-	publisher events.Publisher
+	publisher   events.Publisher
 }
 
 func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService, publisher events.Publisher) *Handler {
@@ -88,9 +88,9 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	}
 	logger.GetSugar().Infof("target: %s", target)
 	go h.publishAudit(events.AuditEvent{
-		Action:      events.ActionShorten,
-		UserID:      utils.UserID(userID),
-		URL:         string(body),
+		Action: events.ActionShorten,
+		UserID: utils.UserID(userID),
+		URL:    string(body),
 	})
 
 	res.Header().Set("Content-Type", "text/plain")
@@ -295,4 +295,3 @@ func getUrlsFromJSON(body io.ReadCloser) ([]string, error) {
 	}
 	return input, nil
 }
-

@@ -106,12 +106,12 @@ func (s *URLService) SetURL(ctx context.Context, fullURL string, userID string) 
 	} else if err != nil {
 		return "", fmt.Errorf("unable to add URL: %w", err)
 	}
-	logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL()) 
+	logger.GetSugar().Infof("Added URL: %s -> %s", url.GetOriginal(), url.GetShortURL())
 
 	return MakeShortURL(url.GetShortURL())
 }
 
-func (s *URLService) SetBatchURL(ctx context.Context, batchURLs []*model.Urls, userID string) ([]*model.Urls, error) {	
+func (s *URLService) SetBatchURL(ctx context.Context, batchURLs []*model.Urls, userID string) ([]*model.Urls, error) {
 	for _, u := range batchURLs {
 		u.SetUserID(string(userID))
 	}
