@@ -10,20 +10,25 @@ import (
 	"github.com/FoPQer/go-shortener/internal/repository/user"
 	userDB "github.com/FoPQer/go-shortener/internal/repository/user/db"
 
-	// userFile "github.com/FoPQer/go-shortener/internal/repository/user/file"
 	userMemory "github.com/FoPQer/go-shortener/internal/repository/user/memory"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// RepositoryFactory builds repository implementations based on runtime configuration.
 type RepositoryFactory struct {
-	conn *pgxpool.Pool
+	conn     *pgxpool.Pool
 	filePath string
 }
 
+// NewRepositoryFactory constructs a RepositoryFactory with database and file settings.
 func NewRepositoryFactory(conn *pgxpool.Pool, filePath string) *RepositoryFactory {
 	return &RepositoryFactory{conn: conn, filePath: filePath}
 }
 
+// CreateUrlsRepository returns a URL repository implementation.
+//
+// Priority: database repository when DB connection is available,
+// file repository when file path is configured, otherwise in-memory repository.
 func (f *RepositoryFactory) CreateUrlsRepository() (urls.Repository, error) {
 	var repo urls.Repository
 	if f.conn != nil {
@@ -40,6 +45,10 @@ func (f *RepositoryFactory) CreateUrlsRepository() (urls.Repository, error) {
 	return repo, nil
 }
 
+// CreateUserRepository returns a user repository implementation.
+//
+// Priority: database repository when DB connection is available,
+// otherwise in-memory repository.
 func (f *RepositoryFactory) CreateUserRepository() (user.UserRepository, error) {
 	var repo user.UserRepository
 	if f.conn != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/auth"
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
+	"github.com/FoPQer/go-shortener/internal/events"
 	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/middlewares"
@@ -14,6 +15,7 @@ import (
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -28,33 +30,55 @@ func main() {
 	}
 	if pgxConf.GetDBConn() != nil {
 		defer pgxConf.GetDBConn().Close()
-	} 
+	}
 
 	factory := repoFactory.NewRepositoryFactory(pgxConf.GetDBConn(), service.GetFileStoragePath())
-		
-    urlRepo, err := factory.CreateUrlsRepository()
-    if err != nil {
-        panic(err)
-    }
+
+	urlRepo, err := factory.CreateUrlsRepository()
+	if err != nil {
+		panic(err)
+	}
 
 	userRepo, err := factory.CreateUserRepository()
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 
-    urlService := service.NewURLService(urlRepo)
+	urlService := service.NewURLService(urlRepo)
 	jsonService := service.NewJSONService()
 	userService := service.NewUserService(userRepo)
 	claimsService := auth.NewClaimsService()
 
 	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
 
-	handler := handlers.NewHandler(urlService, jsonService, userService)
-	dbHandler := handlers.NewDBHandler(pgxConf.GetDBConn())
+	auditFilePath := service.GetAuditFile()
+	auditURLPath := service.GetAuditURL()
+	var auditPublisher events.Publisher
+	if auditFilePath == "" && auditURLPath == "" {
+		logger.GetSugar().Infoln("No audit destination specified, skipping audit setup")
+	} else {
+		auditBus := events.NewAuditBus(100)
+		auditPublisher = auditBus
 
+		if auditFilePath != "" {
+			auditFile := events.NewAuditFile(1, auditFilePath)
+			auditBus.AddSubscriber(auditFile)
+			logger.GetSugar().Infoln("Audit file successfully setup")
+		}
+
+		if auditURLPath != "" {
+			auditURL := events.NewAuditURL(1, auditURLPath)
+			auditBus.AddSubscriber(auditURL)
+			logger.GetSugar().Infoln("Audit url successfully setup")
+		}
+	}
+
+	handler := handlers.NewHandler(urlService, jsonService, userService, auditPublisher)
+	dbHandler := handlers.NewDBHandler(pgxConf.GetDBConn())
 
 	r := chi.NewRouter()
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
+	r.Mount("/debug", chiMiddleware.Profiler())
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		panic(err)

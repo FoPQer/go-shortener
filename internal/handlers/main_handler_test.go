@@ -38,7 +38,7 @@ func TestGetUrl(t *testing.T) {
 		URLService *service.URLService
 	}
 	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
-	handler := NewHandler(cont.URLService, nil, nil)
+	handler := NewHandler(cont.URLService, nil, nil, nil)
 	type want struct {
 		code     int
 		location string
@@ -50,8 +50,8 @@ func TestGetUrl(t *testing.T) {
 		want  want
 	}{
 		{
-			name:  "without value",
-			urls:  &model.Urls{
+			name: "without value",
+			urls: &model.Urls{
 				Original: "https://example.com",
 				ShortURL: "67KBAWAO",
 			},
@@ -62,8 +62,8 @@ func TestGetUrl(t *testing.T) {
 			},
 		},
 		{
-			name:  "double get",
-			urls:  &model.Urls{
+			name: "double get",
+			urls: &model.Urls{
 				Original: "https://example.com",
 				ShortURL: "RVHUL6VG",
 			},
@@ -99,7 +99,7 @@ func TestPostUrl(t *testing.T) {
 		URLService *service.URLService
 	}
 	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
-	handler := NewHandler(cont.URLService, nil, nil)
+	handler := NewHandler(cont.URLService, nil, nil, nil)
 	type want struct {
 		code        int
 		isEmptyBody bool
@@ -156,31 +156,31 @@ func TestPostURLByJSON(t *testing.T) {
 	initTestLogger(t)
 
 	type container struct {
-		URLService *service.URLService
+		URLService  *service.URLService
 		JSONService *service.JSONService
 		UserService *service.UserService
 	}
 	cont := &container{
-		URLService: service.NewURLService(urlMemory.NewRepository()),
+		URLService:  service.NewURLService(urlMemory.NewRepository()),
 		JSONService: service.NewJSONService(),
 		UserService: service.NewUserService(userMemory.NewRepository()),
 	}
-	handler := NewHandler(cont.URLService, cont.JSONService, cont.UserService)
+	handler := NewHandler(cont.URLService, cont.JSONService, cont.UserService, nil)
 	type want struct {
 		code        int
 		contentType string
 		isEmptyBody bool
 	}
 	tests := []struct {
-		name  string
-		urls  *model.Urls
-		body  string
-		want  want
+		name string
+		urls *model.Urls
+		body string
+		want want
 	}{
 		{
-			name:  "valid json",
-			urls:  model.NewUrls("", ""),
-			body:  `{"url":"https://priem.mirea.ru/lk"}`,
+			name: "valid json",
+			urls: model.NewUrls("", ""),
+			body: `{"url":"https://priem.mirea.ru/lk"}`,
 			want: want{
 				code:        http.StatusCreated,
 				contentType: "application/json",
@@ -188,9 +188,9 @@ func TestPostURLByJSON(t *testing.T) {
 			},
 		},
 		{
-			name:  "existing original url",
-			urls:  model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
-			body:  `{"url":"https://priem.mirea.ru/lk"}`,
+			name: "existing original url",
+			urls: model.NewUrls("https://priem.mirea.ru/lk", "RVHUL6VG"),
+			body: `{"url":"https://priem.mirea.ru/lk"}`,
 			want: want{
 				code:        http.StatusConflict,
 				contentType: "application/json",

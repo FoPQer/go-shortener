@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/FoPQer/go-shortener/internal/events"
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
@@ -15,21 +16,26 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// OutputUserUrlsJSON is a response DTO for user-owned shortened URLs.
 type OutputUserUrlsJSON struct {
-	ShortURL string `json:"short_url"`
+	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
+// Handler provides HTTP handlers for URL shortening and user URL management.
 type Handler struct {
-	urlService *service.URLService
+	urlService  *service.URLService
 	jsonService *service.JSONService
 	userService *service.UserService
+	publisher   events.Publisher
 }
 
-func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService) *Handler {
-	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService}
+// NewHandler constructs a new Handler with required services and an optional audit publisher.
+func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService, publisher events.Publisher) *Handler {
+	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService, publisher: publisher}
 }
 
+// GetURL resolves a short URL and responds with a temporary redirect to the original URL.
 func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 	shortURL := chi.URLParam(req, "id")
 	if shortURL == "" {
@@ -51,10 +57,17 @@ func (h *Handler) GetURL(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
+	userID := getUserIDFromContext(req.Context())
+	go h.publishAudit(events.AuditEvent{
+		Action: events.ActionFollow,
+		UserID: utils.UserID(userID),
+		URL:    url,
+	})
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// PostURL creates a short URL from a plain-text request body.
 func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -79,12 +92,18 @@ func (h *Handler) PostURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	logger.GetSugar().Infof("target: %s", target)
+	go h.publishAudit(events.AuditEvent{
+		Action: events.ActionShorten,
+		UserID: utils.UserID(userID),
+		URL:    string(body),
+	})
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(target))
 }
 
+// PostURLByJSON creates a short URL from a JSON payload and returns JSON response.
 func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -122,12 +141,18 @@ func (h *Handler) PostURLByJSON(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "", http.StatusBadRequest)
 		return
 	}
+	go h.publishAudit(events.AuditEvent{
+		Action: events.ActionShorten,
+		UserID: utils.UserID(userID),
+		URL:    string(url),
+	})
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
 	res.Write(out)
 }
 
+// PostBatchURLByJSON creates multiple short URLs from a JSON batch payload.
 func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -164,6 +189,7 @@ func (h *Handler) PostBatchURLByJSON(res http.ResponseWriter, req *http.Request)
 	res.Write(out)
 }
 
+// GetUserURLs returns all non-deleted URLs associated with the authenticated user.
 func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
 	userID := getUserIDFromContext(req.Context())
 	if userID == "" {
@@ -195,6 +221,7 @@ func (h *Handler) GetUserURLs(res http.ResponseWriter, req *http.Request) {
 	res.Write(out)
 }
 
+// DeleteUserURLs marks user URLs as deleted using a JSON array of short URL identifiers.
 func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 	userID := getUserIDFromContext(req.Context())
 	if userID == "" {
@@ -220,6 +247,7 @@ func (h *Handler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusAccepted)
 }
 
+// getUserIDFromContext extracts the user ID from request context.
 func getUserIDFromContext(ctx context.Context) string {
 	var userID string
 	if ctx.Value(utils.UserID("userID")) != nil {
@@ -230,6 +258,16 @@ func getUserIDFromContext(ctx context.Context) string {
 	return userID
 }
 
+// publishAudit sends an audit event if a publisher is configured.
+func (h *Handler) publishAudit(event events.AuditEvent) {
+	if h.publisher == nil {
+		return
+	}
+
+	h.publisher.Publish(event)
+}
+
+// setUserUrlsToJSON converts URL entities into a JSON response payload.
 func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
 	output, err := getUrlsJSONFromUrlsSlice(input)
 	if err != nil {
@@ -244,6 +282,7 @@ func setUserUrlsToJSON(input []*model.Urls) ([]byte, error) {
 	return result, nil
 }
 
+// getUrlsJSONFromUrlsSlice maps URL entities to OutputUserUrlsJSON DTOs.
 func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJSON, error) {
 	output := make([]OutputUserUrlsJSON, 0, len(urls))
 	for _, u := range urls {
@@ -260,6 +299,7 @@ func getUrlsJSONFromUrlsSlice(urls []*model.Urls) ([]OutputUserUrlsJSON, error) 
 	return output, nil
 }
 
+// getUrlsFromJSON decodes a JSON array of short URLs from request body.
 func getUrlsFromJSON(body io.ReadCloser) ([]string, error) {
 	var input []string
 	err := json.NewDecoder(body).Decode(&input)
@@ -269,4 +309,3 @@ func getUrlsFromJSON(body io.ReadCloser) ([]string, error) {
 	}
 	return input, nil
 }
-

@@ -8,28 +8,33 @@ import (
 )
 
 type (
+	// responseData stores HTTP response metadata collected by logging middleware.
 	responseData struct {
 		status int
 		size   int
 	}
 
+	// loggingResponseWriter captures response status and size for request logging.
 	loggingResponseWriter struct {
 		http.ResponseWriter
 		responseData *responseData
 	}
 )
 
+// Write writes response body and accumulates written byte count.
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
 	return size, err
 }
 
+// WriteHeader writes HTTP status code and stores it for logging.
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
 
+// WithLogging logs incoming request metadata and outgoing response metrics.
 func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

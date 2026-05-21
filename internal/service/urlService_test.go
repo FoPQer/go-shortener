@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/model"
 	"github.com/FoPQer/go-shortener/internal/repository/urls"
 	"github.com/stretchr/testify/assert"
@@ -181,7 +182,7 @@ func BenchmarkDeleteUrls(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	
+	b.ResetTimer()
 	for b.Loop() {
 		err := svc.DeleteUrls(context.Background(), shortURLs, "bench-user")
 		if err != nil {
@@ -191,5 +192,71 @@ func BenchmarkDeleteUrls(b *testing.B) {
 
 	if calls.Load() == 0 {
 		b.Fatalf("expected benchmark delete function to be called")
+	}
+}
+
+func BenchmarkGetURL(b *testing.B) {
+	repo := newMockURLRepository()
+	repo.getByShortFn = func(ctx context.Context, shortURL string) (string, error) {
+		return "https://example.com", nil
+	}
+	svc := NewURLService(repo)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		got, err := svc.GetURL(context.Background(), "abc")
+		if err != nil {
+			b.Fatalf("GetURL failed: %v", err)
+		}
+		if got == "" {
+			b.Fatal("expected non-empty URL")
+		}
+	}
+}
+
+func BenchmarkSetURL(b *testing.B) {
+	b.Setenv("SERVER_ADDRESS", "127.0.0.1:8080")
+	b.Setenv("BASE_URL", "short")
+	resetConfigCache()
+	if err := logger.InitLogger(); err != nil {
+		b.Fatalf("failed to initialize logger: %v", err)
+	}
+
+	repo := newMockURLRepository()
+	svc := NewURLService(repo)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		got, err := svc.SetURL(context.Background(), "https://example.com", "bench-user")
+		if err != nil {
+			b.Fatalf("SetURL failed: %v", err)
+		}
+		if got == "" {
+			b.Fatal("expected non-empty short URL")
+		}
+	}
+}
+
+func BenchmarkSetBatchURL(b *testing.B) {
+	repo := newMockURLRepository()
+	svc := NewURLService(repo)
+
+	batchURLs := make([]*model.Urls, 1000)
+	for i := range batchURLs {
+		batchURLs[i] = model.NewUrls(fmt.Sprintf("https://example.com/%d", i), fmt.Sprintf("short-%d", i))
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		got, err := svc.SetBatchURL(context.Background(), batchURLs, "bench-user")
+		if err != nil {
+			b.Fatalf("SetBatchURL failed: %v", err)
+		}
+		if len(got) != len(batchURLs) {
+			b.Fatalf("expected %d URLs, got %d", len(batchURLs), len(got))
+		}
 	}
 }

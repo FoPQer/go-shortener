@@ -56,7 +56,7 @@ func TestGetUrls_ValidData(t *testing.T) {
 
 func TestGetUrls_InvalidJSON(t *testing.T) {
 	filePath := createTempFile(t)
-	
+
 	err := os.WriteFile(filePath, []byte("invalid json data"), 0644)
 	require.NoError(t, err)
 
@@ -209,7 +209,7 @@ func TestAddURL(t *testing.T) {
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
 				result := repo.GetUrls(context.Background())
 				assert.Equal(t, 3, len(result))
-				
+
 				original, err := repo.GetURLByShortURL(context.Background(), "short2")
 				require.NoError(t, err)
 				assert.Equal(t, "https://example2.com", original)
@@ -269,7 +269,7 @@ func TestAddURL(t *testing.T) {
 			validate: func(t *testing.T, repo *FileUrlsRepository) {
 				repo2 := NewRepository(repo.filePath)
 				result := repo2.GetUrls(context.Background())
-				
+
 				assert.Equal(t, 1, len(result))
 				assert.Equal(t, "https://example.com", result[0].GetOriginal())
 				assert.Equal(t, "GJFTZTEQ", result[0].GetShortURL())
