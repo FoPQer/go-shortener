@@ -24,7 +24,7 @@ func WithGzip(next http.Handler) http.Handler {
 		}
 
 		var writer io.Writer = w
-		
+
 		if r.Method == http.MethodPost && contentGzip(r) {
 			gzr, err := gzip.NewReader(r.Body)
 			if err != nil {
@@ -32,10 +32,10 @@ func WithGzip(next http.Handler) http.Handler {
 				return
 			}
 			defer gzr.Close()
-			
+
 			r.Body = gzr
 		}
-		if  isCompressibleContentType(r.Header.Get("Content-Type")) {
+		if isCompressibleContentType(r.Header.Get("Content-Type")) {
 			gz, err := gzip.NewWriterLevel(w, gzip.BestCompression)
 			if err != nil {
 				io.WriteString(w, err.Error())
@@ -47,7 +47,7 @@ func WithGzip(next http.Handler) http.Handler {
 
 			writer = gz
 		}
-		
+
 		gzipResponseWriter := gzipResponseWriter{
 			ResponseWriter: w,
 			Writer:         writer,

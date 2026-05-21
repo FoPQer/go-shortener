@@ -17,12 +17,12 @@ type OutputJSONURL struct {
 
 type InputJSONBatchURL struct {
 	CorrelationID string `json:"correlation_id"`
-	OriginalURL string `json:"original_url"`
+	OriginalURL   string `json:"original_url"`
 }
 
 type OutputJSONBatchURL struct {
 	CorrelationID string `json:"correlation_id"`
-	ShortURL string `json:"short_url"`
+	ShortURL      string `json:"short_url"`
 }
 
 type JSONService struct {
@@ -43,7 +43,7 @@ func (s *JSONService) GetURLFromJSON(input []byte) (string, error) {
 
 func (s *JSONService) SetURLToJSON(input string) ([]byte, error) {
 	url := OutputJSONURL{Result: input}
-	
+
 	result, err := json.Marshal(url)
 	if err != nil {
 		return nil, err
@@ -82,8 +82,8 @@ func (s *JSONService) GetUrlsFromInputBatchJSON(input []InputJSONBatchURL) ([]*m
 	urls := make([]*model.Urls, 0, len(input))
 	for _, u := range input {
 		urls = append(urls, &model.Urls{
-			Original:   u.OriginalURL,
-			ShortURL:   u.CorrelationID,
+			Original: u.OriginalURL,
+			ShortURL: u.CorrelationID,
 		})
 	}
 

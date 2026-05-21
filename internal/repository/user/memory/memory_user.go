@@ -37,7 +37,7 @@ func (r *MemoryUserRepository) Save(ctx context.Context, user *model.User) (stri
 			return "", fmt.Errorf("error while saving new user: %w", repo.ErrUserAlreadyExists)
 		}
 	}
-	
+
 	r.users = append(r.users, user)
 	return user.GetID(), nil
 }

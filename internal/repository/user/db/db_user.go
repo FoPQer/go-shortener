@@ -26,7 +26,7 @@ func (r *DBUserRepository) FindByID(ctx context.Context, id string) (*model.User
 	user := &model.User{}
 
 	row := r.conn.QueryRow(
-		ctx, 
+		ctx,
 		"SELECT id FROM users WHERE id = $1",
 		id,
 	)
@@ -45,14 +45,13 @@ func (r *DBUserRepository) FindByID(ctx context.Context, id string) (*model.User
 
 func (r *DBUserRepository) Save(ctx context.Context, user *model.User) (string, error) {
 	row := r.conn.QueryRow(
-		ctx, 
+		ctx,
 		"INSERT INTO users DEFAULT VALUES RETURNING id",
 	)
 	err := row.Scan(&user.ID)
-	
+
 	if err != nil {
 		return "", fmt.Errorf("failed to save user: %w", err)
 	}
 	return user.ID, nil
 }
-
