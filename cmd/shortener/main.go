@@ -25,8 +25,7 @@ func main() {
 	if errors.Is(err, db.ErrConnNotFound) {
 		logger.GetSugar().Infoln("Database connection string not found, using file or memory repository")
 	} else if err != nil {
-		logger.GetSugar().Errorf("Error initializing database: %s", err.Error())
-		panic(err)
+		logger.GetSugar().Fatalf("Error initializing database: %s", err.Error())
 	}
 	if pgxConf.GetDBConn() != nil {
 		defer pgxConf.GetDBConn().Close()
@@ -36,12 +35,12 @@ func main() {
 
 	urlRepo, err := factory.CreateUrlsRepository()
 	if err != nil {
-		panic(err)
+		logger.GetSugar().Fatal(err)
 	}
 
 	userRepo, err := factory.CreateUserRepository()
 	if err != nil {
-		panic(err)
+		logger.GetSugar().Fatal(err)
 	}
 
 	urlService := service.NewURLService(urlRepo)
@@ -81,6 +80,6 @@ func main() {
 	r.Mount("/debug", chiMiddleware.Profiler())
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
-		panic(err)
+		logger.GetSugar().Fatal(err)
 	}
 }
