@@ -10,6 +10,7 @@ import (
 type UserService struct {
 	userRepo user.UserRepository
 }
+
 func NewUserService(userRepo user.UserRepository) *UserService {
 	return &UserService{
 		userRepo: userRepo,

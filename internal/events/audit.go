@@ -21,9 +21,9 @@ const (
 )
 
 type AuditEvent struct {
-	Action    Action
-	UserID    utils.UserID
-	URL 	  string
+	Action Action
+	UserID utils.UserID
+	URL    string
 }
 
 type AuditDTO struct {
