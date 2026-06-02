@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/auth"
@@ -18,7 +19,15 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	initMsg()
+
 	flags.ParseFlags()
 	logger.InitLogger()
 	pgxConf, err := db.InitPgsql()
@@ -82,4 +91,19 @@ func main() {
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
 		logger.GetSugar().Fatal(err)
 	}
+}
+
+func initMsg() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	log.Printf("Build version: %s\n", buildVersion)
+	log.Printf("Build date: %s\n", buildDate)
+	log.Printf("Build commit: %s\n", buildCommit)
 }
