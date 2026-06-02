@@ -1,6 +1,7 @@
 package model
 
 // Urls represents a shortened URL entity in the domain model.
+// generate:reset
 type Urls struct {
 	Original string `json:"original_url"`
 	ShortURL string `json:"short_url"`
