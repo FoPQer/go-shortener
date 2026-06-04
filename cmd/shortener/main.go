@@ -91,7 +91,6 @@ func main() {
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
 
-
 	if service.GetHTTPs() {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
