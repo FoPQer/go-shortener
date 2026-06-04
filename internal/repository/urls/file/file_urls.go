@@ -93,14 +93,14 @@ func (r *FileUrlsRepository) AddURL(ctx context.Context, original, shortURL stri
 			return u, repository.ErrURLAlreadyExists
 		}
 	}
-	
+
 	u := model.NewUrls(original, shortURL)
 	u.SetUserID(userID)
-	
+
 	urls = append(urls, u)
-	
+
 	utils.WriteToFile(r.filePath, urls)
-	
+
 	return u, nil
 }
 

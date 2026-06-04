@@ -9,8 +9,8 @@ var (
 	flagBasePrefix      string
 	flagFileStoragePath string
 	flagDatabaseURL     string
-	flagAuditFile		string
-    flagAuditURL		string
+	flagAuditFile       string
+	flagAuditURL        string
 )
 
 func GetFlagRunAddr() string {

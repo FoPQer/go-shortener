@@ -14,9 +14,9 @@ import (
 )
 
 type AuthMiddleware struct {
-	userService *service.UserService
+	userService   *service.UserService
 	claimsService *auth.ClaimsService
-	secretKey string
+	secretKey     string
 }
 
 func NewAuthMiddleware(userService *service.UserService, claimsService *auth.ClaimsService) *AuthMiddleware {
@@ -24,7 +24,7 @@ func NewAuthMiddleware(userService *service.UserService, claimsService *auth.Cla
 }
 
 func (m *AuthMiddleware) WithAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {		
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("X-Auth-Token")
 		if errors.Is(err, http.ErrNoCookie) {
 			newCookie, err := m.buildNewCookie(r)
@@ -78,8 +78,8 @@ func (m *AuthMiddleware) buildNewCookie(r *http.Request) (*http.Cookie, error) {
 	}
 	log.Printf("Generated new token for user %s: %s", userID, tokenString)
 	return &http.Cookie{
-		Name:  "X-Auth-Token",
-		Value: tokenString,
+		Name:     "X-Auth-Token",
+		Value:    tokenString,
 		HttpOnly: true,
 	}, nil
 }

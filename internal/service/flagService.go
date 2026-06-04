@@ -5,77 +5,154 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 )
 
+var (
+	runAddrOnce sync.Once
+	runAddr     string
+
+	basePrefixOnce sync.Once
+	basePrefix     string
+
+	fileStoragePathOnce sync.Once
+	fileStoragePath     string
+
+	databaseDSNOnce sync.Once
+	databaseDSN     string
+
+	secretKeyOnce sync.Once
+	secretKey     string
+
+	auditFileOnce sync.Once
+	auditFile     string
+
+	auditURLOnce sync.Once
+	auditURL     string
+)
+
 func GetRunAddr() string {
-	if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
-		return url.PathEscape(addr)
-	} else {
-		return url.PathEscape(flags.GetFlagRunAddr())
-	}
+	runAddrOnce.Do(func() {
+		if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
+			runAddr = url.PathEscape(addr)
+			return
+		}
+
+		runAddr = url.PathEscape(flags.GetFlagRunAddr())
+	})
+
+	return runAddr
 }
 
 func GetBasePrefix() string {
-	var outBase string
+	basePrefixOnce.Do(func() {
+		if base := os.Getenv("BASE_URL"); base != "" {
+			basePrefix = base
+		} else {
+			basePrefix = flags.GetFlagBasePrefix()
+		}
 
-	if base := os.Getenv("BASE_URL"); base != "" {
-		outBase = base
-	} else {
-		outBase = flags.GetFlagBasePrefix()
-	}
+		basePrefix = url.PathEscape(basePrefix)
 
-	outBase = url.PathEscape(outBase)
+		if !strings.HasPrefix(basePrefix, "/") {
+			basePrefix = "/" + basePrefix
+		}
+		if !strings.HasSuffix(basePrefix, "/") {
+			basePrefix = basePrefix + "/"
+		}
+	})
 
-	if !strings.HasPrefix(outBase, "/") {
-		outBase = "/" + outBase
-	}
-	if !strings.HasSuffix(outBase, "/") {
-		outBase = outBase + "/"
-	}
-
-	return outBase
+	return basePrefix
 }
 
 func GetFileStoragePath() string {
-	if path := os.Getenv("FILE_STORAGE_PATH"); path != "" {
-		return path
-	} else {
-		return flags.GetFlagFileStoragePath()
-	}
+	fileStoragePathOnce.Do(func() {
+		if path := os.Getenv("FILE_STORAGE_PATH"); path != "" {
+			fileStoragePath = path
+			return
+		}
+
+		fileStoragePath = flags.GetFlagFileStoragePath()
+	})
+
+	return fileStoragePath
 }
 
 func GetDatabaseDSN() string {
-	if dsn := os.Getenv("DATABASE_DSN"); dsn != "" {
-		return dsn
-	} else {
-		return flags.GetFlagDatabaseURL()
-	}
+	databaseDSNOnce.Do(func() {
+		if dsn := os.Getenv("DATABASE_DSN"); dsn != "" {
+			databaseDSN = dsn
+			return
+		}
+
+		databaseDSN = flags.GetFlagDatabaseURL()
+	})
+
+	return databaseDSN
 }
 
 func GetSecretKey() string {
-	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
-		return secretKey
-	} else {
-		return "your_secret_key";
-	}
+	secretKeyOnce.Do(func() {
+		if value := os.Getenv("SECRET_KEY"); value != "" {
+			secretKey = value
+			return
+		}
+
+		secretKey = "your_secret_key"
+	})
+
+	return secretKey
 }
 
 func GetAuditFile() string {
-	if auditFile := os.Getenv("AUDIT_FILE"); auditFile != "" {
-		return normalizePath(auditFile)
-	} else {
-		return normalizePath(flags.GetFlagAuditFile())
-	}
+	auditFileOnce.Do(func() {
+		if value := os.Getenv("AUDIT_FILE"); value != "" {
+			auditFile = normalizePath(value)
+			return
+		}
+
+		auditFile = normalizePath(flags.GetFlagAuditFile())
+	})
+
+	return auditFile
 }
 
 func GetAuditURL() string {
-	if auditURL := os.Getenv("AUDIT_URL"); auditURL != "" {
-		return auditURL
-	} else {
-		return flags.GetFlagAuditURL()
-	}
+	auditURLOnce.Do(func() {
+		if value := os.Getenv("AUDIT_URL"); value != "" {
+			auditURL = value
+			return
+		}
+
+		auditURL = flags.GetFlagAuditURL()
+	})
+
+	return auditURL
+}
+
+func resetConfigCache() {
+	runAddrOnce = sync.Once{}
+	runAddr = ""
+
+	basePrefixOnce = sync.Once{}
+	basePrefix = ""
+
+	fileStoragePathOnce = sync.Once{}
+	fileStoragePath = ""
+
+	databaseDSNOnce = sync.Once{}
+	databaseDSN = ""
+
+	secretKeyOnce = sync.Once{}
+	secretKey = ""
+
+	auditFileOnce = sync.Once{}
+	auditFile = ""
+
+	auditURLOnce = sync.Once{}
+	auditURL = ""
 }
 
 func normalizePath(path string) string {
