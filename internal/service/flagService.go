@@ -31,6 +31,9 @@ var (
 
 	auditURLOnce sync.Once
 	auditURL     string
+
+	HTTPsOnce sync.Once
+	HTTPs     bool
 )
 
 // GetRunAddr returns the configured server address.
@@ -139,6 +142,20 @@ func GetAuditURL() string {
 	return auditURL
 }
 
+// GetHTTPs returns the configured HTTPS setting.
+func GetHTTPs() bool {
+	HTTPsOnce.Do(func() {
+		if value := os.Getenv("ENABLE_HTTPS"); value != "" {
+			HTTPs = value == "true"
+			return
+		}
+
+		HTTPs = flags.GetFlagHTTPs()
+	})
+
+	return HTTPs
+}
+
 // resetConfigCache clears cached configuration values.
 func resetConfigCache() {
 	runAddrOnce = sync.Once{}
@@ -161,6 +178,9 @@ func resetConfigCache() {
 
 	auditURLOnce = sync.Once{}
 	auditURL = ""
+
+	HTTPsOnce = sync.Once{}
+	HTTPs = false
 }
 
 // normalizePath trims quotes and whitespace and returns a cleaned file path.

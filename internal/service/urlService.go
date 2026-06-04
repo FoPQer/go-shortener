@@ -142,9 +142,16 @@ func newID() string {
 
 // MakeShortURL builds an absolute short URL from the token and service configuration.
 func MakeShortURL(id string) (string, error) {
-	short, err := url.JoinPath("http://"+GetRunAddr(), GetBasePrefix(), id)
+	short, err := url.JoinPath(getScheme()+GetRunAddr(), GetBasePrefix(), id)
 	if err != nil {
 		return "", err
 	}
 	return short, nil
+}
+
+func getScheme() string {
+	if GetHTTPs() {
+		return "https://"
+	}
+	return "http://"
 }

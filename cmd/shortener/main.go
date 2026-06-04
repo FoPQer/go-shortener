@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/FoPQer/go-shortener/internal/auth"
 	"github.com/FoPQer/go-shortener/internal/config/db"
@@ -15,6 +17,7 @@ import (
 	repoFactory "github.com/FoPQer/go-shortener/internal/repository/factory"
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
+	"github.com/FoPQer/go-shortener/internal/utils"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
@@ -88,8 +91,41 @@ func main() {
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
 
-	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
-		logger.GetSugar().Fatal(err)
+
+	if service.GetHTTPs() {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			logger.GetSugar().Fatal(err)
+		}
+
+		certPath := filepath.Join(homeDir, "cert.pem")
+		privateKeyPath := filepath.Join(homeDir, "private.pem")
+
+		certExists := true
+		if _, err := os.Stat(certPath); os.IsNotExist(err) {
+			certExists = false
+		}
+		keyExists := true
+		if _, err := os.Stat(privateKeyPath); os.IsNotExist(err) {
+			keyExists = false
+		}
+
+		if !certExists || !keyExists {
+			logger.GetSugar().Infoln("Certificate files not found, generating self-signed certificates")
+			if err := utils.GenerateCertificate(); err != nil {
+				logger.GetSugar().Fatal(err)
+			}
+		}
+
+		logger.GetSugar().Infoln("Starting server with HTTPS")
+		if err := http.ListenAndServeTLS(service.GetRunAddr(), certPath, privateKeyPath, r); err != nil {
+			logger.GetSugar().Fatal(err)
+		}
+	} else {
+		logger.GetSugar().Infoln("Starting server with HTTP")
+		if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
+			logger.GetSugar().Fatal(err)
+		}
 	}
 }
 
@@ -103,7 +139,7 @@ func initMsg() {
 	if buildCommit == "" {
 		buildCommit = "N/A"
 	}
-	log.Printf("Build version: %s\n", buildVersion)
-	log.Printf("Build date: %s\n", buildDate)
-	log.Printf("Build commit: %s\n", buildCommit)
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 }
