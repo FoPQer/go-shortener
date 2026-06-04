@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/FoPQer/go-shortener/internal/auth"
@@ -18,15 +19,22 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	initMsg()
+
 	flags.ParseFlags()
 	logger.InitLogger()
 	pgxConf, err := db.InitPgsql()
 	if errors.Is(err, db.ErrConnNotFound) {
 		logger.GetSugar().Infoln("Database connection string not found, using file or memory repository")
 	} else if err != nil {
-		logger.GetSugar().Errorf("Error initializing database: %s", err.Error())
-		panic(err)
+		logger.GetSugar().Fatalf("Error initializing database: %s", err.Error())
 	}
 	if pgxConf.GetDBConn() != nil {
 		defer pgxConf.GetDBConn().Close()
@@ -36,12 +44,12 @@ func main() {
 
 	urlRepo, err := factory.CreateUrlsRepository()
 	if err != nil {
-		panic(err)
+		logger.GetSugar().Fatal(err)
 	}
 
 	userRepo, err := factory.CreateUserRepository()
 	if err != nil {
-		panic(err)
+		logger.GetSugar().Fatal(err)
 	}
 
 	urlService := service.NewURLService(urlRepo)
@@ -81,6 +89,21 @@ func main() {
 	r.Mount("/debug", chiMiddleware.Profiler())
 
 	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
-		panic(err)
+		logger.GetSugar().Fatal(err)
 	}
+}
+
+func initMsg() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	log.Printf("Build version: %s\n", buildVersion)
+	log.Printf("Build date: %s\n", buildDate)
+	log.Printf("Build commit: %s\n", buildCommit)
 }

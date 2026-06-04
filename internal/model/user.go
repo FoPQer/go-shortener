@@ -1,6 +1,7 @@
 package model
 
 // User represents an application user and their associated URLs.
+// generate:reset
 type User struct {
 	ID   string  `json:"id"`
 	Urls []*Urls `json:"urls"`
