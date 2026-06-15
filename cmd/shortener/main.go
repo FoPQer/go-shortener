@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/FoPQer/go-shortener/internal/auth"
+	"github.com/FoPQer/go-shortener/internal/config"
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/events"
@@ -33,6 +34,18 @@ func main() {
 
 	flags.ParseFlags()
 	logger.InitLogger()
+
+	// Load configuration from file if specified
+	configFilePath := os.Getenv("CONFIG")
+	if configFilePath == "" {
+		configFilePath = flags.GetFlagConfigFile()
+	}
+	if configFilePath != "" {
+		if _, err := config.LoadConfig(configFilePath); err != nil {
+			logger.GetSugar().Warnf("Failed to load configuration file: %v", err)
+		}
+	}
+
 	pgxConf, err := db.InitPgsql()
 	if errors.Is(err, db.ErrConnNotFound) {
 		logger.GetSugar().Infoln("Database connection string not found, using file or memory repository")
