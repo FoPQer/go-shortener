@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/FoPQer/go-shortener/internal/auth"
 	"github.com/FoPQer/go-shortener/internal/config"
@@ -104,6 +108,16 @@ func main() {
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
 
+	srv := &http.Server{
+		Addr:    service.GetRunAddr(),
+		Handler: r,
+	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	serverErr := make(chan error, 1)
+
 	if service.GetHTTPs() {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -130,13 +144,36 @@ func main() {
 		}
 
 		logger.GetSugar().Infoln("Starting server with HTTPS")
-		if err := http.ListenAndServeTLS(service.GetRunAddr(), certPath, privateKeyPath, r); err != nil {
-			logger.GetSugar().Fatal(err)
-		}
+		go func() {
+			serverErr <- srv.ListenAndServeTLS(certPath, privateKeyPath)
+		}()
 	} else {
 		logger.GetSugar().Infoln("Starting server with HTTP")
-		if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
-			logger.GetSugar().Fatal(err)
+		go func() {
+			serverErr <- srv.ListenAndServe()
+		}()
+	}
+
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			logger.GetSugar().Fatalf("Server error: %s", err)
+		}
+	case sig := <-quit:
+		logger.GetSugar().Infof("Received signal %s, shutting down gracefully...", sig)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if auditBus, ok := auditPublisher.(*events.AuditBus); ok {
+			auditBus.Close()
+			logger.GetSugar().Infoln("Audit bus closed")
+		}
+
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.GetSugar().Errorf("Graceful shutdown failed: %s", err)
+		} else {
+			logger.GetSugar().Infoln("Server shut down successfully")
 		}
 	}
 }

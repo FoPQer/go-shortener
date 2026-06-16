@@ -89,6 +89,17 @@ func (b *AuditBus) Publish(event AuditEvent) {
 	}
 }
 
+// Close closes all subscriber channels, causing their goroutines to finish.
+func (b *AuditBus) Close() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	for _, ch := range b.subscribers {
+		close(ch)
+	}
+	b.subscribers = nil
+}
+
 // Auditor consumes audit events from a subscription channel.
 type Auditor interface {
 	Subscribe(events <-chan AuditEvent)
