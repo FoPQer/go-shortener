@@ -113,8 +113,8 @@ func main() {
 		Handler: r,
 	}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
 
 	serverErr := make(chan error, 1)
 
@@ -159,21 +159,21 @@ func main() {
 		if !errors.Is(err, http.ErrServerClosed) {
 			logger.GetSugar().Fatalf("Server error: %s", err)
 		}
-	case sig := <-quit:
-		logger.GetSugar().Infof("Received signal %s, shutting down gracefully...", sig)
+	case <-ctx.Done():
+		logger.GetSugar().Infoln("Received shutdown signal, shutting down gracefully...")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-
-		if auditBus, ok := auditPublisher.(*events.AuditBus); ok {
-			auditBus.Close()
-			logger.GetSugar().Infoln("Audit bus closed")
-		}
 
 		if err := srv.Shutdown(ctx); err != nil {
 			logger.GetSugar().Errorf("Graceful shutdown failed: %s", err)
 		} else {
 			logger.GetSugar().Infoln("Server shut down successfully")
+		}
+
+		if auditBus, ok := auditPublisher.(*events.AuditBus); ok {
+			auditBus.Close()
+			logger.GetSugar().Infoln("Audit bus closed")
 		}
 	}
 }

@@ -2,10 +2,11 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/FoPQer/go-shortener/internal/logger"
 )
 
 // Config represents the configuration structure loaded from a JSON file.
@@ -19,10 +20,8 @@ type Config struct {
 	AuditURL         string `json:"audit_url"`
 }
 
-var loadedConfig *Config
-
 // LoadConfig loads configuration from the specified file path.
-// Returns nil if the file doesn't exist or can't be read.
+// Returns an error if the file cannot be read or parsed.
 func LoadConfig(filePath string) (*Config, error) {
 	if filePath == "" {
 		return nil, nil
@@ -37,38 +36,27 @@ func LoadConfig(filePath string) (*Config, error) {
 
 	filePath = filepath.Clean(filePath)
 
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Config file not found: %s\n", filePath)
-		return nil, nil
-	}
-
 	// Read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to read config file: %v\n", err)
+		if lg := logger.GetSugar(); lg != nil {
+			lg.Errorf("Failed to read config file: %v", err)
+		}
 		return nil, err
 	}
 
 	// Parse JSON
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to parse config file: %v\n", err)
+		if lg := logger.GetSugar(); lg != nil {
+			lg.Errorf("Failed to parse config file: %v", err)
+		}
 		return nil, err
 	}
 
-	loadedConfig = &cfg
-	fmt.Fprintf(os.Stderr, "Configuration loaded from file: %s\n", filePath)
+	if lg := logger.GetSugar(); lg != nil {
+		lg.Infof("Configuration loaded from file: %s", filePath)
+	}
 
 	return &cfg, nil
-}
-
-// GetLoadedConfig returns the currently loaded configuration or nil.
-func GetLoadedConfig() *Config {
-	return loadedConfig
-}
-
-// ResetConfig clears the loaded configuration.
-func ResetConfig() {
-	loadedConfig = nil
 }

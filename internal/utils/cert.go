@@ -81,7 +81,7 @@ func GenerateCertificate() error {
 		return err
 	}
 
-	if err = os.WriteFile(filepath.Join(homeDir, "private.pem"), privateKeyPEM.Bytes(), 0644); err != nil {
+	if err = os.WriteFile(filepath.Join(homeDir, "private.pem"), privateKeyPEM.Bytes(), 0600); err != nil {
 		return err
 	}
 	return nil

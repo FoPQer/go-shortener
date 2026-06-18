@@ -39,7 +39,7 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name:      "nonexistent file",
 			filePath:  "/nonexistent/path/config.json",
-			wantError: false,
+			wantError: true,
 		},
 		{
 			name:      "empty file path",
@@ -50,9 +50,6 @@ func TestLoadConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up before test
-			ResetConfig()
-
 			// Create temp file if needed
 			if tt.content != "" {
 				tmpFile, err := os.CreateTemp("", "*.json")
@@ -102,13 +99,7 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
-func TestGetLoadedConfig(t *testing.T) {
-	ResetConfig()
-
-	if cfg := GetLoadedConfig(); cfg != nil {
-		t.Error("GetLoadedConfig() should return nil before loading")
-	}
-
+func TestLoadConfigIsStateless(t *testing.T) {
 	// Create a temp config file
 	tmpFile, err := os.CreateTemp("", "*.json")
 	if err != nil {
@@ -122,39 +113,21 @@ func TestGetLoadedConfig(t *testing.T) {
 	}
 	tmpFile.Close()
 
-	// Load the config
-	LoadConfig(tmpFile.Name())
-
-	if cfg := GetLoadedConfig(); cfg == nil {
-		t.Error("GetLoadedConfig() should return config after loading")
-	}
-}
-
-func TestResetConfig(t *testing.T) {
-	// Create a temp config file
-	tmpFile, err := os.CreateTemp("", "*.json")
+	first, err := LoadConfig(tmpFile.Name())
 	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-
-	content := `{"server_address": "localhost:8080"}`
-	if _, err := tmpFile.WriteString(content); err != nil {
-		t.Fatalf("failed to write to temp file: %v", err)
-	}
-	tmpFile.Close()
-
-	// Load the config
-	LoadConfig(tmpFile.Name())
-
-	if cfg := GetLoadedConfig(); cfg == nil {
-		t.Error("Config should be loaded")
+		t.Fatalf("first LoadConfig() failed: %v", err)
 	}
 
-	// Reset
-	ResetConfig()
+	second, err := LoadConfig(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("second LoadConfig() failed: %v", err)
+	}
 
-	if cfg := GetLoadedConfig(); cfg != nil {
-		t.Error("GetLoadedConfig() should return nil after reset")
+	if first == nil || second == nil {
+		t.Fatal("LoadConfig() should return non-nil config")
+	}
+
+	if first == second {
+		t.Error("LoadConfig() should not rely on shared package-level state")
 	}
 }

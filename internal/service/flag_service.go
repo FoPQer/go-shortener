@@ -1,6 +1,7 @@
 package service
 
 import (
+	"flag"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -34,8 +35,8 @@ var (
 	auditURLOnce sync.Once
 	auditURL     string
 
-	HTTPsOnce sync.Once
-	HTTPs     bool
+	httpsOnce sync.Once
+	https     bool
 
 	configOnce sync.Once
 	cfg        *config.Config
@@ -73,12 +74,14 @@ func getConfigFilePath() string {
 
 // isFlagSet checks if a flag was explicitly set in os.Args.
 func isFlagSet(flagName string) bool {
-	for _, arg := range os.Args[1:] {
-		if strings.HasPrefix(arg, "-"+flagName+"=") || strings.HasPrefix(arg, "-"+flagName) {
-			return true
+	isSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == flagName {
+			isSet = true
 		}
-	}
-	return false
+	})
+
+	return isSet
 }
 
 // GetRunAddr returns the configured server address.
@@ -273,31 +276,31 @@ func GetAuditURL() string {
 
 // GetHTTPs returns the configured HTTPS setting.
 func GetHTTPs() bool {
-	HTTPsOnce.Do(func() {
+	httpsOnce.Do(func() {
 		// Priority 1: Command-line flag
 		if isFlagSet("s") {
-			HTTPs = flags.GetFlagHTTPs()
+			https = flags.GetFlagHTTPs()
 			return
 		}
 
 		// Priority 2: Environment variable
 		if value := os.Getenv("ENABLE_HTTPS"); value != "" {
-			HTTPs = value == "true"
+			https = value == "true"
 			return
 		}
 
 		// Priority 3: Config file
 		cfg := loadConfig()
 		if cfg != nil {
-			HTTPs = cfg.EnableHTTPS
+			https = cfg.EnableHTTPS
 			return
 		}
 
 		// Priority 4: Flag default
-		HTTPs = flags.GetFlagHTTPs()
+		https = flags.GetFlagHTTPs()
 	})
 
-	return HTTPs
+	return https
 }
 
 // resetConfigCache clears cached configuration values.
@@ -323,13 +326,11 @@ func resetConfigCache() {
 	auditURLOnce = sync.Once{}
 	auditURL = ""
 
-	HTTPsOnce = sync.Once{}
-	HTTPs = false
+	httpsOnce = sync.Once{}
+	https = false
 
 	configOnce = sync.Once{}
 	cfg = nil
-
-	config.ResetConfig()
 }
 
 // normalizePath trims quotes and whitespace and returns a cleaned file path.

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"flag"
+	"io"
 	"os"
 	"testing"
 )
@@ -32,8 +34,7 @@ func TestConfigPriority(t *testing.T) {
 	tmpFile.Close()
 
 	// Set environment variable for config file
-	os.Setenv("CONFIG", tmpFile.Name())
-	defer os.Unsetenv("CONFIG")
+	t.Setenv("CONFIG", tmpFile.Name())
 
 	tests := []struct {
 		name     string
@@ -205,6 +206,35 @@ func TestGetHTTPSFromConfig(t *testing.T) {
 	}
 
 	resetConfigCache()
+}
+
+func TestIsFlagSetDoesNotMatchByPrefix(t *testing.T) {
+	originalCommandLine := flag.CommandLine
+	defer func() {
+		flag.CommandLine = originalCommandLine
+	}()
+
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+
+	var runAddr string
+	var auditFile string
+	fs.StringVar(&runAddr, "a", "", "")
+	fs.StringVar(&auditFile, "audit-file", "", "")
+
+	if err := fs.Parse([]string{"-audit-file=/tmp/audit.log"}); err != nil {
+		t.Fatalf("failed to parse flags: %v", err)
+	}
+
+	flag.CommandLine = fs
+
+	if isFlagSet("a") {
+		t.Fatal("isFlagSet(\"a\") should be false when only -audit-file is set")
+	}
+
+	if !isFlagSet("audit-file") {
+		t.Fatal("isFlagSet(\"audit-file\") should be true when -audit-file is set")
+	}
 }
 
 // Helper function to check if string contains substring
