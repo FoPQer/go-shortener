@@ -1,11 +1,18 @@
 package main
 
 import (
+	"context"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/FoPQer/go-shortener/internal/auth"
+	"github.com/FoPQer/go-shortener/internal/config"
 	"github.com/FoPQer/go-shortener/internal/config/db"
 	"github.com/FoPQer/go-shortener/internal/config/flags"
 	"github.com/FoPQer/go-shortener/internal/events"
@@ -15,6 +22,7 @@ import (
 	repoFactory "github.com/FoPQer/go-shortener/internal/repository/factory"
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
+	"github.com/FoPQer/go-shortener/internal/utils"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
@@ -30,6 +38,18 @@ func main() {
 
 	flags.ParseFlags()
 	logger.InitLogger()
+
+	// Load configuration from file if specified
+	configFilePath := os.Getenv("CONFIG")
+	if configFilePath == "" {
+		configFilePath = flags.GetFlagConfigFile()
+	}
+	if configFilePath != "" {
+		if _, err := config.LoadConfig(configFilePath); err != nil {
+			logger.GetSugar().Warnf("Failed to load configuration file: %v", err)
+		}
+	}
+
 	pgxConf, err := db.InitPgsql()
 	if errors.Is(err, db.ErrConnNotFound) {
 		logger.GetSugar().Infoln("Database connection string not found, using file or memory repository")
@@ -88,8 +108,73 @@ func main() {
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
 
-	if err := http.ListenAndServe(service.GetRunAddr(), r); err != nil {
-		logger.GetSugar().Fatal(err)
+	srv := &http.Server{
+		Addr:    service.GetRunAddr(),
+		Handler: r,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+
+	serverErr := make(chan error, 1)
+
+	if service.GetHTTPs() {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			logger.GetSugar().Fatal(err)
+		}
+
+		certPath := filepath.Join(homeDir, "cert.pem")
+		privateKeyPath := filepath.Join(homeDir, "private.pem")
+
+		certExists := true
+		if _, err := os.Stat(certPath); os.IsNotExist(err) {
+			certExists = false
+		}
+		keyExists := true
+		if _, err := os.Stat(privateKeyPath); os.IsNotExist(err) {
+			keyExists = false
+		}
+
+		if !certExists || !keyExists {
+			logger.GetSugar().Infoln("Certificate files not found, generating self-signed certificates")
+			if err := utils.GenerateCertificate(); err != nil {
+				logger.GetSugar().Fatal(err)
+			}
+		}
+
+		logger.GetSugar().Infoln("Starting server with HTTPS")
+		go func() {
+			serverErr <- srv.ListenAndServeTLS(certPath, privateKeyPath)
+		}()
+	} else {
+		logger.GetSugar().Infoln("Starting server with HTTP")
+		go func() {
+			serverErr <- srv.ListenAndServe()
+		}()
+	}
+
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			logger.GetSugar().Fatalf("Server error: %s", err)
+		}
+	case <-ctx.Done():
+		logger.GetSugar().Infoln("Received shutdown signal, shutting down gracefully...")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.GetSugar().Errorf("Graceful shutdown failed: %s", err)
+		} else {
+			logger.GetSugar().Infoln("Server shut down successfully")
+		}
+
+		if auditBus, ok := auditPublisher.(*events.AuditBus); ok {
+			auditBus.Close()
+			logger.GetSugar().Infoln("Audit bus closed")
+		}
 	}
 }
 
@@ -103,7 +188,7 @@ func initMsg() {
 	if buildCommit == "" {
 		buildCommit = "N/A"
 	}
-	log.Printf("Build version: %s\n", buildVersion)
-	log.Printf("Build date: %s\n", buildDate)
-	log.Printf("Build commit: %s\n", buildCommit)
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 }

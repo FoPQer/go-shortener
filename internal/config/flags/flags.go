@@ -11,6 +11,8 @@ var (
 	flagDatabaseURL     string
 	flagAuditFile       string
 	flagAuditURL        string
+	flagHTTPs           bool
+	flagConfigFile      string
 )
 
 // GetFlagRunAddr returns server address configured via command-line flags.
@@ -73,6 +75,26 @@ func SetFlagAuditURL(newFlagAuditURL string) {
 	flagAuditURL = newFlagAuditURL
 }
 
+// GetFlagHTTPs returns HTTPS configuration configured via command-line flags.
+func GetFlagHTTPs() bool {
+	return flagHTTPs
+}
+
+// SetFlagHTTPs sets HTTPS configuration flag value.
+func SetFlagHTTPs(newFlagHTTPs bool) {
+	flagHTTPs = newFlagHTTPs
+}
+
+// GetFlagConfigFile returns config file path configured via command-line flags.
+func GetFlagConfigFile() string {
+	return flagConfigFile
+}
+
+// SetFlagConfigFile sets config file path flag value.
+func SetFlagConfigFile(newFlagConfigFile string) {
+	flagConfigFile = newFlagConfigFile
+}
+
 // ParseFlags defines and parses all supported command-line flags for the service.
 func ParseFlags() {
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
@@ -81,6 +103,7 @@ func ParseFlags() {
 	flag.StringVar(&flagDatabaseURL, "d", "", "database connection string")
 	flag.StringVar(&flagAuditFile, "audit-file", "", "audit file path")
 	flag.StringVar(&flagAuditURL, "audit-url", "", "audit URL")
-
+	flag.BoolVar(&flagHTTPs, "s", false, "HTTPS configuration")
+	flag.StringVar(&flagConfigFile, "c", "", "config file path")
 	flag.Parse()
 }

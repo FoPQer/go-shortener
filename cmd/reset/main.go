@@ -22,18 +22,14 @@ const marker = "generate:reset"
 func main() {
 	root, err := findModuleRoot()
 	if err != nil {
-		fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	if err := generateResetMethods(root); err != nil {
-		fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-}
-
-// fatal prints an error to stderr and exits with a non-zero status.
-func fatal(err error) {
-	fmt.Fprintln(os.Stderr, err)
-	os.Exit(1)
 }
 
 // findModuleRoot walks upward from the current directory until it finds go.mod.

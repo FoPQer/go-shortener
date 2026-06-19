@@ -42,3 +42,69 @@ git fetch template && git checkout template/v2 .github
 - **Clean Architecture**
 - **Hexagonal Architecture**
 - **Layered Architecture**
+
+## Конфигурация приложения
+
+Приложение поддерживает конфигурацию через:
+1. Флаги командной строки (наивысший приоритет)
+2. Переменные окружения
+3. JSON конфигурационный файл
+4. Значения по умолчанию (наименьший приоритет)
+
+### Использование конфигурационного файла
+
+Вы можете создать JSON файл конфигурации и указать его через флаг `-c` или переменную окружения `CONFIG`:
+
+```bash
+./cmd/shortener/main -c config.json
+```
+
+или
+
+```bash
+CONFIG=config.json ./cmd/shortener/main
+```
+
+### Формат JSON конфигурации
+
+Пример файла конфигурации (см. `config.example.json`):
+
+```json
+{
+  "server_address": "localhost:8080",
+  "base_url": "http://localhost",
+  "file_storage_path": "/path/to/file.db",
+  "database_dsn": "",
+  "enable_https": false,
+  "audit_file": "",
+  "audit_url": ""
+}
+```
+
+### Опции конфигурации
+
+- `server_address` - адрес и порт сервера (аналог флага `-a` или переменной `SERVER_ADDRESS`)
+- `base_url` - базовый URL (аналог флага `-b` или переменной `BASE_URL`)
+- `file_storage_path` - путь к файлу хранилища (аналог флага `-f` или переменной `FILE_STORAGE_PATH`)
+- `database_dsn` - строка подключения к БД (аналог флага `-d` или переменной `DATABASE_DSN`)
+- `enable_https` - включить HTTPS (аналог флага `-s` или переменной `ENABLE_HTTPS`)
+- `audit_file` - путь к файлу аудита (аналог флага `--audit-file` или переменной `AUDIT_FILE`)
+- `audit_url` - URL для отправки аудита (аналог флага `--audit-url` или переменной `AUDIT_URL`)
+
+### Примеры использования
+
+**Только конфигурационный файл:**
+```bash
+./cmd/shortener/main -c config.json
+```
+
+**Конфигурационный файл с переопределением через флаги:**
+```bash
+./cmd/shortener/main -c config.json -a "0.0.0.0:9090"
+```
+
+**Конфигурационный файл с переопределением через переменные окружения:**
+```bash
+SERVER_ADDRESS="0.0.0.0:9090" ./cmd/shortener/main -c config.json
+```
+
