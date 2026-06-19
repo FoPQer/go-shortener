@@ -9,26 +9,26 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type urlsCounter interface {
+// Counter describes minimal counting behavior required by StatService.
+type Counter interface {
 	Count(ctx context.Context) (int, error)
 }
 
-type usersCounter interface {
-	Count(ctx context.Context) (int, error)
-}
-
+// StatService aggregates service-wide counters such as URLs and users.
 type StatService struct {
-	urlsCounter  urlsCounter
-	usersCounter usersCounter
+	urlsCounter  Counter
+	usersCounter Counter
 }
 
-func NewStatService(urlsCounter urlsCounter, usersCounter usersCounter) *StatService {
+// NewStatService creates a StatService that uses provided counters.
+func NewStatService(urlsCounter Counter, usersCounter Counter) *StatService {
 	return &StatService{
 		urlsCounter:  urlsCounter,
 		usersCounter: usersCounter,
 	}
 }
 
+// GetStats concurrently fetches URL and user counts and returns aggregated statistics.
 func (s *StatService) GetStats(ctx context.Context) (*model.Stat, error) {
 	if s.urlsCounter == nil || s.usersCounter == nil {
 		return nil, fmt.Errorf("stat service is not configured")
