@@ -26,6 +26,11 @@ func (r *MemoryUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	return r.urls
 }
 
+// Count returns total amount of shortened URLs in memory.
+func (r *MemoryUrlsRepository) Count(ctx context.Context) (int, error) {
+	return len(r.urls), nil
+}
+
 // SetUrls replaces the in-memory URL collection.
 func (r *MemoryUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	r.urls = newUrls

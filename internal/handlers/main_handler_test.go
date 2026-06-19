@@ -38,7 +38,7 @@ func TestGetUrl(t *testing.T) {
 		URLService *service.URLService
 	}
 	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
-	handler := NewHandler(cont.URLService, nil, nil, nil)
+	handler := NewHandler(cont.URLService, nil, nil, nil, nil)
 	type want struct {
 		code     int
 		location string
@@ -99,7 +99,7 @@ func TestPostUrl(t *testing.T) {
 		URLService *service.URLService
 	}
 	cont := &container{URLService: service.NewURLService(urlMemory.NewRepository())}
-	handler := NewHandler(cont.URLService, nil, nil, nil)
+	handler := NewHandler(cont.URLService, nil, nil, nil, nil)
 	type want struct {
 		code        int
 		isEmptyBody bool
@@ -165,7 +165,7 @@ func TestPostURLByJSON(t *testing.T) {
 		JSONService: service.NewJSONService(),
 		UserService: service.NewUserService(userMemory.NewRepository()),
 	}
-	handler := NewHandler(cont.URLService, cont.JSONService, cont.UserService, nil)
+	handler := NewHandler(cont.URLService, cont.JSONService, cont.UserService, nil, nil)
 	type want struct {
 		code        int
 		contentType string

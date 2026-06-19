@@ -52,6 +52,17 @@ func (r *DBUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	return urls
 }
 
+// Count returns total amount of shortened URLs in database.
+func (r *DBUrlsRepository) Count(ctx context.Context) (int, error) {
+	var total int
+	err := r.conn.QueryRow(ctx, "SELECT COUNT(*) FROM urls WHERE is_deleted = FALSE").Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 // SetUrls inserts a collection of URLs into the database.
 func (r *DBUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	for _, u := range newUrls {

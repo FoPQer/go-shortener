@@ -39,14 +39,16 @@ func newExampleRouter() *chi.Mux {
 	urlService := service.NewURLService(urlMemory.NewRepository())
 	jsonService := service.NewJSONService()
 	userService := service.NewUserService(userMemory.NewRepository())
+	statService := service.NewStatService(urlService, userService)
 	claimsService := auth.NewClaimsService()
 
-	handler := handlers.NewHandler(urlService, jsonService, userService, nil)
+	handler := handlers.NewHandler(urlService, jsonService, userService, statService, nil)
 	dbHandler := handlers.NewDBHandler(nil)
 	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
+	trustedMiddleware := middlewares.NewTrustedMiddleware("")
 
 	r := chi.NewRouter()
-	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
+	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware, trustedMiddleware)
 	return r
 }
 
@@ -54,14 +56,16 @@ func newExampleRouterWithFileURLRepo(filePath string) *chi.Mux {
 	urlService := service.NewURLService(urlsFile.NewRepository(filePath))
 	jsonService := service.NewJSONService()
 	userService := service.NewUserService(userMemory.NewRepository())
+	statService := service.NewStatService(urlService, userService)
 	claimsService := auth.NewClaimsService()
 
-	handler := handlers.NewHandler(urlService, jsonService, userService, nil)
+	handler := handlers.NewHandler(urlService, jsonService, userService, statService, nil)
 	dbHandler := handlers.NewDBHandler(nil)
 	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
+	trustedMiddleware := middlewares.NewTrustedMiddleware("")
 
 	r := chi.NewRouter()
-	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
+	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware, trustedMiddleware)
 	return r
 }
 

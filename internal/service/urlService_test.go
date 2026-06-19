@@ -32,6 +32,8 @@ func newMockURLRepository() *mockURLRepository {
 
 func (m *mockURLRepository) GetUrls(ctx context.Context) []*model.Urls { return nil }
 
+func (m *mockURLRepository) Count(ctx context.Context) (int, error) { return 0, nil }
+
 func (m *mockURLRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {}
 
 func (m *mockURLRepository) GetUrlsByUserID(ctx context.Context, userID string) ([]*model.Urls, error) {

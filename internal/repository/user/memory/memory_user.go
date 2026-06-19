@@ -31,6 +31,11 @@ func (r *MemoryUserRepository) FindByID(ctx context.Context, id string) (*model.
 	return nil, repo.ErrUserNotFound
 }
 
+// Count returns total amount of users in memory.
+func (r *MemoryUserRepository) Count(ctx context.Context) (int, error) {
+	return len(r.users), nil
+}
+
 // Save stores a user in memory and returns its identifier.
 func (r *MemoryUserRepository) Save(ctx context.Context, user *model.User) (string, error) {
 	if user.GetID() == "" {

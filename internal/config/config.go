@@ -18,6 +18,7 @@ type Config struct {
 	EnableHTTPS      bool   `json:"enable_https"`
 	AuditFile        string `json:"audit_file"`
 	AuditURL         string `json:"audit_url"`
+	TrustedSubnet    string `json:"trusted_subnet"`
 }
 
 // LoadConfig loads configuration from the specified file path.

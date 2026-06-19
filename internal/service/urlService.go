@@ -33,6 +33,11 @@ func (s *URLService) GetUrls(ctx context.Context) []*model.Urls {
 	return s.repo.GetUrls(ctx)
 }
 
+// Count returns total amount of shortened URLs.
+func (s *URLService) Count(ctx context.Context) (int, error) {
+	return s.repo.Count(ctx)
+}
+
 // GetUrlsByUserID returns URLs that belong to the specified user.
 func (s *URLService) GetUrlsByUserID(ctx context.Context, userID string) ([]*model.Urls, error) {
 	return s.repo.GetUrlsByUserID(ctx, userID)
