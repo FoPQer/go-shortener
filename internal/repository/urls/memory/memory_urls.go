@@ -44,7 +44,7 @@ func (r *MemoryUrlsRepository) GetUrlsByUserID(ctx context.Context, userID strin
 			outUrls = append(outUrls, u)
 		}
 	}
-	return outUrls, fmt.Errorf("%w: %s", urls.ErrURLNotFound, userID)
+	return outUrls, nil
 }
 
 // GetURLByOriginalURL finds a URL entity by its original URL.

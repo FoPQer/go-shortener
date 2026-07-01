@@ -17,6 +17,9 @@ var (
 	runAddrOnce sync.Once
 	runAddr     string
 
+	grpcAddrOnce sync.Once
+	grpcAddr     string
+
 	basePrefixOnce sync.Once
 	basePrefix     string
 
@@ -114,6 +117,35 @@ func GetRunAddr() string {
 	})
 
 	return runAddr
+}
+
+// GetGRPCAddr returns the configured gRPC server address.
+func GetGRPCAddr() string {
+	grpcAddrOnce.Do(func() {
+		// Priority 1: Command-line flag
+		if isFlagSet("g") {
+			grpcAddr = flags.GetFlagGRPCAddr()
+			return
+		}
+
+		// Priority 2: Environment variable
+		if addr := os.Getenv("GRPC_ADDRESS"); addr != "" {
+			grpcAddr = addr
+			return
+		}
+
+		// Priority 3: Config file
+		cfg := loadConfig()
+		if cfg != nil && cfg.GRPCAddress != "" {
+			grpcAddr = cfg.GRPCAddress
+			return
+		}
+
+		// Priority 4: Default from flag
+		grpcAddr = flags.GetFlagGRPCAddr()
+	})
+
+	return grpcAddr
 }
 
 // GetBasePrefix returns the configured URL base prefix.
@@ -337,6 +369,9 @@ func GetTrustedSubnet() string {
 func resetConfigCache() {
 	runAddrOnce = sync.Once{}
 	runAddr = ""
+
+	grpcAddrOnce = sync.Once{}
+	grpcAddr = ""
 
 	basePrefixOnce = sync.Once{}
 	basePrefix = ""

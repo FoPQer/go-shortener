@@ -12,6 +12,7 @@ import (
 // Config represents the configuration structure loaded from a JSON file.
 type Config struct {
 	ServerAddress    string `json:"server_address"`
+	GRPCAddress      string `json:"grpc_address"`
 	BaseURL          string `json:"base_url"`
 	FileStoragePath  string `json:"file_storage_path"`
 	DatabaseDSN      string `json:"database_dsn"`

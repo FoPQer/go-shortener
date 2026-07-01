@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,12 +20,14 @@ import (
 	"github.com/FoPQer/go-shortener/internal/handlers"
 	"github.com/FoPQer/go-shortener/internal/logger"
 	"github.com/FoPQer/go-shortener/internal/middlewares"
+	pb "github.com/FoPQer/go-shortener/internal/proto"
 	repoFactory "github.com/FoPQer/go-shortener/internal/repository/factory"
 	"github.com/FoPQer/go-shortener/internal/routes"
 	"github.com/FoPQer/go-shortener/internal/service"
 	"github.com/FoPQer/go-shortener/internal/utils"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -110,7 +113,7 @@ func main() {
 	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware, trustedMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
 
-	srv := &http.Server{
+	httpSrv := &http.Server{
 		Addr:    service.GetRunAddr(),
 		Handler: r,
 	}
@@ -118,8 +121,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
-	serverErr := make(chan error, 1)
+	serverErr := make(chan error, 2)
 
+	// Start HTTP server
 	if service.GetHTTPs() {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -147,14 +151,32 @@ func main() {
 
 		logger.GetSugar().Infoln("Starting server with HTTPS")
 		go func() {
-			serverErr <- srv.ListenAndServeTLS(certPath, privateKeyPath)
+			serverErr <- httpSrv.ListenAndServeTLS(certPath, privateKeyPath)
 		}()
 	} else {
 		logger.GetSugar().Infoln("Starting server with HTTP")
 		go func() {
-			serverErr <- srv.ListenAndServe()
+			serverErr <- httpSrv.ListenAndServe()
 		}()
 	}
+
+	// Start gRPC server
+	grpcSrv := grpc.NewServer(
+		grpc.UnaryInterceptor(middlewares.NewGRPCAuthInterceptor(userService, claimsService)),
+	)
+	pb.RegisterShortenerServiceServer(grpcSrv, handlers.NewGRPCHandler(urlService, userService))
+
+	grpcAddr := service.GetGRPCAddr()
+	lis, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		logger.GetSugar().Fatalf("gRPC listen error: %s", err)
+	}
+	logger.GetSugar().Infof("Starting gRPC server on %s", grpcAddr)
+	go func() {
+		if err := grpcSrv.Serve(lis); err != nil {
+			serverErr <- fmt.Errorf("gRPC server error: %w", err)
+		}
+	}()
 
 	select {
 	case err := <-serverErr:
@@ -164,14 +186,17 @@ func main() {
 	case <-ctx.Done():
 		logger.GetSugar().Infoln("Received shutdown signal, shutting down gracefully...")
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		shutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		if err := srv.Shutdown(ctx); err != nil {
-			logger.GetSugar().Errorf("Graceful shutdown failed: %s", err)
+		if err := httpSrv.Shutdown(shutCtx); err != nil {
+			logger.GetSugar().Errorf("Graceful HTTP shutdown failed: %s", err)
 		} else {
-			logger.GetSugar().Infoln("Server shut down successfully")
+			logger.GetSugar().Infoln("HTTP server shut down successfully")
 		}
+
+		grpcSrv.GracefulStop()
+		logger.GetSugar().Infoln("gRPC server shut down successfully")
 
 		if auditBus, ok := auditPublisher.(*events.AuditBus); ok {
 			auditBus.Close()
