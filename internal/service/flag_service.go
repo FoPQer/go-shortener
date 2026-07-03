@@ -356,6 +356,7 @@ func GetTrustedSubnet() string {
 		cfg := loadConfig()
 		if cfg != nil {
 			trustedSubnet = cfg.TrustedSubnet
+			return
 		}
 		
 		// Priority 4: Flag default

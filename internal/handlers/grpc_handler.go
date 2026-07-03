@@ -34,7 +34,7 @@ func (h *GRPCHandler) ShortenURL(ctx context.Context, req *pb.URLShortenRequest)
 	userID := getUserIDFromContext(ctx)
 	target, err := h.urlService.SetURL(ctx, req.Url, userID)
 	if errors.Is(err, urls.ErrURLAlreadyExists) {
-		return &pb.URLShortenResponse{Result: target}, status.Error(codes.AlreadyExists, "URL already exists")
+		return nil, status.Error(codes.AlreadyExists, "URL already exists")
 	} else if err != nil {
 		logger.GetSugar().Errorf("gRPC ShortenURL error: %v", err)
 		return nil, status.Errorf(codes.Internal, "failed to shorten URL: %v", err)
