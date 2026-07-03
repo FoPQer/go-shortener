@@ -2,8 +2,8 @@ package memory
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"time"
 
 	"github.com/FoPQer/go-shortener/internal/model"
 	repo "github.com/FoPQer/go-shortener/internal/repository/user"
@@ -62,5 +62,5 @@ func (r *MemoryUserRepository) GetUserURLs(ctx context.Context, userID string) (
 
 // generateUserID builds a unique in-memory user identifier.
 func generateUserID() string {
-	return fmt.Sprintf("user-%d", time.Now().UnixNano())
+	return fmt.Sprintf("user-%s", rand.Text())
 }

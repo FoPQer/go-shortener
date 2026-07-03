@@ -6,6 +6,7 @@ import (
 
 var (
 	flagRunAddr         string
+	flagGRPCAddr        string
 	flagBasePrefix      string
 	flagFileStoragePath string
 	flagDatabaseURL     string
@@ -24,6 +25,16 @@ func GetFlagRunAddr() string {
 // SetFlagRunAddr sets server address flag value.
 func SetFlagRunAddr(newFlagRunAddr string) {
 	flagRunAddr = newFlagRunAddr
+}
+
+// GetFlagGRPCAddr returns gRPC server address configured via command-line flags.
+func GetFlagGRPCAddr() string {
+	return flagGRPCAddr
+}
+
+// SetFlagGRPCAddr sets gRPC server address flag value.
+func SetFlagGRPCAddr(newFlagGRPCAddr string) {
+	flagGRPCAddr = newFlagGRPCAddr
 }
 
 // GetFlagBasePrefix returns URL base prefix configured via command-line flags.
@@ -109,6 +120,7 @@ func SetFlagTrustedSubnet(newFlagTrustedSubnet string) {
 // ParseFlags defines and parses all supported command-line flags for the service.
 func ParseFlags() {
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&flagGRPCAddr, "g", "localhost:3200", "address and port to run gRPC server")
 	flag.StringVar(&flagBasePrefix, "b", "", "base prefix to URL")
 	flag.StringVar(&flagFileStoragePath, "f", "", "file storage path")
 	flag.StringVar(&flagDatabaseURL, "d", "", "database connection string")
