@@ -22,6 +22,10 @@ func (m *mockUserRepository) FindByID(ctx context.Context, id string) (*model.Us
 	return model.NewUser(id), nil
 }
 
+func (m *mockUserRepository) Count(ctx context.Context) (int, error) {
+	return 0, nil
+}
+
 func (m *mockUserRepository) Save(ctx context.Context, userModel *model.User) (string, error) {
 	if m.saveFn != nil {
 		return m.saveFn(ctx, userModel)

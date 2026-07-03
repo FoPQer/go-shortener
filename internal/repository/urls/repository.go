@@ -24,6 +24,8 @@ var (
 type Repository interface {
 	// GetUrls returns all stored URLs.
 	GetUrls(ctx context.Context) []*model.Urls
+	// Count returns total amount of shortened URLs.
+	Count(ctx context.Context) (int, error)
 	// SetUrls replaces or initializes the storage with the provided URLs.
 	SetUrls(ctx context.Context, newUrls []*model.Urls)
 	// GetUrlsByUserID returns all non-deleted URLs that belong to a user.

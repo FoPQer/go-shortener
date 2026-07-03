@@ -27,12 +27,34 @@ type Handler struct {
 	urlService  *service.URLService
 	jsonService *service.JSONService
 	userService *service.UserService
+	statService *service.StatService
 	publisher   events.Publisher
 }
 
 // NewHandler constructs a new Handler with required services and an optional audit publisher.
-func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService, publisher events.Publisher) *Handler {
-	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService, publisher: publisher}
+func NewHandler(urlService *service.URLService, jsonService *service.JSONService, userService *service.UserService, statService *service.StatService, publisher events.Publisher) *Handler {
+	return &Handler{urlService: urlService, jsonService: jsonService, userService: userService, statService: statService, publisher: publisher}
+}
+
+// GetStats returns aggregated service statistics.
+func (h *Handler) GetStats(res http.ResponseWriter, req *http.Request) {
+	if h.statService == nil {
+		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	stats, err := h.statService.GetStats(req.Context())
+	if err != nil {
+		logger.GetSugar().Errorf("Error while collecting stats: %v", err)
+		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(res).Encode(stats); err != nil {
+		logger.GetSugar().Errorf("Error while encoding stats response: %v", err)
+	}
 }
 
 // GetURL resolves a short URL and responds with a temporary redirect to the original URL.

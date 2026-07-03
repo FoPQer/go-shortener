@@ -38,6 +38,9 @@ var (
 	httpsOnce sync.Once
 	https     bool
 
+	trustedSubnetOnce sync.Once
+	trustedSubnet     string
+
 	configOnce sync.Once
 	cfg        *config.Config
 )
@@ -303,6 +306,33 @@ func GetHTTPs() bool {
 	return https
 }
 
+func GetTrustedSubnet() string {
+	trustedSubnetOnce.Do(func() {
+		// Priority 1: Command-line flag
+		if isFlagSet("t") {
+			trustedSubnet = flags.GetFlagTrustedSubnet()
+			return 
+		}
+
+		// Priority 2: Environment variable
+		if value := os.Getenv("TRUSTED_SUBNET"); value != "" {
+			trustedSubnet = value
+			return
+		}
+
+		// Priority 3: Config file
+		cfg := loadConfig()
+		if cfg != nil {
+			trustedSubnet = cfg.TrustedSubnet
+		}
+		
+		// Priority 4: Flag default
+		trustedSubnet = flags.GetFlagTrustedSubnet()
+	})
+
+	return trustedSubnet
+}
+
 // resetConfigCache clears cached configuration values.
 func resetConfigCache() {
 	runAddrOnce = sync.Once{}
@@ -331,6 +361,9 @@ func resetConfigCache() {
 
 	configOnce = sync.Once{}
 	cfg = nil
+
+	trustedSubnetOnce = sync.Once{}
+	trustedSubnet = ""
 }
 
 // normalizePath trims quotes and whitespace and returns a cleaned file path.

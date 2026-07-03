@@ -24,6 +24,11 @@ func (s *UserService) Get(ctx context.Context, id string) (*model.User, error) {
 	return s.userRepo.FindByID(ctx, id)
 }
 
+// Count returns total amount of users.
+func (s *UserService) Count(ctx context.Context) (int, error) {
+	return s.userRepo.Count(ctx)
+}
+
 // Create persists a new user and returns its identifier.
 func (s *UserService) Create(ctx context.Context, user *model.User) (string, error) {
 	return s.userRepo.Save(ctx, user)

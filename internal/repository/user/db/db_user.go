@@ -46,6 +46,17 @@ func (r *DBUserRepository) FindByID(ctx context.Context, id string) (*model.User
 	return user, nil
 }
 
+// Count returns total amount of users in database.
+func (r *DBUserRepository) Count(ctx context.Context) (int, error) {
+	var total int
+	err := r.conn.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count users: %w", err)
+	}
+
+	return total, nil
+}
+
 // Save inserts a new user and returns its generated identifier.
 func (r *DBUserRepository) Save(ctx context.Context, user *model.User) (string, error) {
 	row := r.conn.QueryRow(

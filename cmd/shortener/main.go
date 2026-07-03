@@ -75,9 +75,11 @@ func main() {
 	urlService := service.NewURLService(urlRepo)
 	jsonService := service.NewJSONService()
 	userService := service.NewUserService(userRepo)
+	statService := service.NewStatService(urlService, userService)
 	claimsService := auth.NewClaimsService()
 
 	authMiddleware := middlewares.NewAuthMiddleware(userService, claimsService)
+	trustedMiddleware := middlewares.NewTrustedMiddleware(service.GetTrustedSubnet())
 
 	auditFilePath := service.GetAuditFile()
 	auditURLPath := service.GetAuditURL()
@@ -101,11 +103,11 @@ func main() {
 		}
 	}
 
-	handler := handlers.NewHandler(urlService, jsonService, userService, auditPublisher)
+	handler := handlers.NewHandler(urlService, jsonService, userService, statService, auditPublisher)
 	dbHandler := handlers.NewDBHandler(pgxConf.GetDBConn())
 
 	r := chi.NewRouter()
-	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware)
+	routes.InitWebRoutes(r, handler, dbHandler, authMiddleware, trustedMiddleware)
 	r.Mount("/debug", chiMiddleware.Profiler())
 
 	srv := &http.Server{

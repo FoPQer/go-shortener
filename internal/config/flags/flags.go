@@ -13,6 +13,7 @@ var (
 	flagAuditURL        string
 	flagHTTPs           bool
 	flagConfigFile      string
+	flagTrustedSubnet   string
 )
 
 // GetFlagRunAddr returns server address configured via command-line flags.
@@ -95,6 +96,16 @@ func SetFlagConfigFile(newFlagConfigFile string) {
 	flagConfigFile = newFlagConfigFile
 }
 
+// GetFlagTrustedSubnet returns trusted subnet configured via command-line flags.
+func GetFlagTrustedSubnet() string {
+	return flagTrustedSubnet
+}
+
+// SetFlagTrustedSubnet sets trusted subnet flag value.
+func SetFlagTrustedSubnet(newFlagTrustedSubnet string) {
+	flagTrustedSubnet = newFlagTrustedSubnet
+}
+
 // ParseFlags defines and parses all supported command-line flags for the service.
 func ParseFlags() {
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
@@ -105,5 +116,6 @@ func ParseFlags() {
 	flag.StringVar(&flagAuditURL, "audit-url", "", "audit URL")
 	flag.BoolVar(&flagHTTPs, "s", false, "HTTPS configuration")
 	flag.StringVar(&flagConfigFile, "c", "", "config file path")
+	flag.StringVar(&flagTrustedSubnet, "t", "", "trusted subnet")
 	flag.Parse()
 }

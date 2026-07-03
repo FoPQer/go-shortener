@@ -40,6 +40,11 @@ func (r *FileUrlsRepository) GetUrls(ctx context.Context) []*model.Urls {
 	return urls
 }
 
+// Count returns total amount of shortened URLs in file storage.
+func (r *FileUrlsRepository) Count(ctx context.Context) (int, error) {
+	return len(r.GetUrls(ctx)), nil
+}
+
 // SetUrls replaces the file contents with the provided URL collection.
 func (r *FileUrlsRepository) SetUrls(ctx context.Context, newUrls []*model.Urls) {
 	utils.WriteToFile(r.filePath, newUrls)
